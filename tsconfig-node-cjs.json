@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig-base.json",
+  "include": [
+    "src/node/**/*.ts",
+    "src/node/**/*.mts",
+    "src/node/**/*.cts",
+    "src/node/**/*.d.ts",
+    "src/shared/**/*.ts",
+    "src/shared/**/*.mts",
+    "src/shared/**/*.cts",
+    "src/shared/**/*.d.ts"
+  ],
+  "exclude": ["test/**", "node_modules/**", "src/**/*.spec.ts", "src/**/*.test.ts"],
+  "compilerOptions": {
+    "module": "commonjs",
+    "outDir": "dist/node/cjs"
+  }
+}

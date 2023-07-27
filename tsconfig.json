@@ -1,0 +1,28 @@
+{
+  "extends": "./tsconfig-base.json",
+  "compilerOptions": {
+    "allowSyntheticDefaultImports": true,
+    "declaration": true,
+    "declarationMap": true,
+    "inlineSources": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "sourceMap": true,
+    "strict": true,
+    "target": "es2022",
+    "module": "esnext",
+    "rootDir": "src",
+    "baseUrl": "src",
+    "allowJs": true,
+    "checkJs": true,
+    "outDir": "build",
+    "removeComments": true,
+    "noImplicitAny": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*.ts", "src/**/*.mts", "src/**/*.cts", "src/**/*.d.ts"],
+  "exclude": ["test/**", "node_modules/**", "src/**/*.spec.ts", "src/**/*.test.ts"]
+}

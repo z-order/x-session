@@ -1,0 +1,73 @@
+{
+  "name": "x-session",
+  "version": "0.1.0",
+  "description": "x-session client module set for x-session API Server.",
+  "author": "Chris Stanley <st.theway@gmail.com>",
+  "license": "MIT",
+  "keywords": [
+    "x-session",
+    "x-auth",
+    "x-session-id",
+    "x-session-token"
+  ],
+  "main": "./dist/node/cjs/index.js",
+  "module": "./dist/node/mjs/index.js",
+  "types": "./dist/node/mjs/index.d.ts",
+  "exports": {
+    ".": {
+      "node": {
+        "import": {
+          "types": "./dist/node/mjs/index.d.ts",
+          "default": "./dist/node/mjs/index.js"
+        },
+        "require": {
+          "types": "./dist/node/cjs/index.d.ts",
+          "default": "./dist/node/cjs/index.js"
+        }
+      },
+      "browser": {
+        "import": {
+          "types": "./dist/browser/mjs/index.d.ts",
+          "default": "./dist/browser/mjs/index.js"
+        },
+        "require": {
+          "types": "./dist/browser/cjs/src/index.d.ts",
+          "default": "./dist/browser/cjs/src/index.js"
+        }
+      },
+      "default": "./dist/browser/mjs/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "LICENSE",
+    "dist"
+  ],
+  "scripts": {
+    "lint": "npm run eslint:check && npm run prettier:check",
+    "fix": "npm run prettier:fix",
+    "format": "npm run prettier:fix",
+    "eslint:check": "eslint --ext .js,.ts src",
+    "eslint:fix": "eslint --fix --ext .js,.ts src",
+    "prettier:check": "prettier --log-level log --check '**/*.{js,jsx,cjs,mjs,ts,tsx,cts,mts,json,md}'",
+    "prettier:fix": "prettier --log-level log --write '**/*.{js,jsx,cjs,mjs,ts,tsx,cts,mts,json,md}'",
+    "test": "jest",
+    "test:dev": "jest --watchAll",
+    "clean": "rimraf ./dist",
+    "tsc:compile:node": "tsc -p tsconfig-node-esm.json && tsc -p tsconfig-node-cjs.json",
+    "tsc:compile:browser": "tsc -p tsconfig-browser-esm.json && tsc -p tsconfig-browser-cjs.json",
+    "build": "npm run clean && npm run tsc:compile:node && npm run tsc:compile:browser"
+  },
+  "devDependencies": {
+    "@types/node": "^20.4.5",
+    "@typescript-eslint/eslint-plugin": "^6.2.0",
+    "@typescript-eslint/parser": "^6.2.0",
+    "eslint": "^8.45.0",
+    "eslint-config-prettier": "^8.8.0",
+    "jest": "^29.6.2",
+    "prettier": "^3.0.0",
+    "rimraf": "^5.0.1",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.1.6"
+  }
+}
