@@ -150,10 +150,7 @@ class XSessionPushEvent extends XSessionEventEmitter {
   }
 
   public close(): void {
-    //
-    // This log occurs when the connection is happened ... Why? check later !!!
-    //console.debug(`${this.__CLASSNAME__}: Closing connection...?`);
-    //
+    console.debug(`${this.__CLASSNAME__}: Closing connection...?`);
     // If an EventSource exists, close it
     if (this._eventSource) {
       console.debug(`${this.__CLASSNAME__}: Closing connection...Done!`);

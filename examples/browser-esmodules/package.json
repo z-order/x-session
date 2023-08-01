@@ -1,0 +1,15 @@
+{
+  "name": "XSession-example-browser-esmodules",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "true",
+    "start": "npm run build && npx http-server . -o"
+  },
+  "dependencies": {
+    "x-session": "file:../../npmjs/x-session",
+    "jsonwebtoken": "^9.0.1",
+    "uuid": "^9.0.0"
+  }
+}

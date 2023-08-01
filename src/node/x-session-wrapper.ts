@@ -5,4 +5,4 @@ class XSessionWrapper {
   private __CLASSNAME__ = 'XSessionWrapper';
 }
 
-export { XSessionWrapper };
+export default XSessionWrapper;

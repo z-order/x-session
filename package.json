@@ -12,7 +12,8 @@
   ],
   "main": "./dist/node/cjs/index.js",
   "module": "./dist/node/mjs/index.js",
-  "types": "./dist/node/mjs/index.d.ts",
+  "browser": "./dist/browser/mjs/index.js",
+  "types": "./dist/browser/mjs/index.d.ts",
   "exports": {
     ".": {
       "node": {
@@ -44,6 +45,12 @@
     "dist"
   ],
   "scripts": {
+    "examples:browser:esmodules:build": "cd examples/browser-esmodules && npm install && npm run build",
+    "examples:browser:webpack:build": "cd examples/browser-webpack && npm install && npm run build",
+    "examples:browser:rollup:build": "cd examples/browser-rollup && npm install && npm run build",
+    "examples:node:commonjs:test": "cd examples/node-commonjs && npm install && npm test",
+    "examples:node:esmodules:test": "cd examples/node-esmodules && npm install && npm test",
+    "examples:node:jest:test": "cd examples/node-jest && npm install && npm test",
     "lint": "npm run eslint:check && npm run prettier:check",
     "fix": "npm run prettier:fix",
     "format": "npm run prettier:fix",
@@ -59,7 +66,11 @@
     "build": "npm run clean && npm run tsc:compile:node && npm run tsc:compile:browser"
   },
   "devDependencies": {
+    "@types/jest": "^29.5.3",
+    "@types/jsonwebtoken": "^9.0.2",
+    "@types/jsrsasign": "^10.5.8",
     "@types/node": "^20.4.5",
+    "@types/uuid": "^9.0.2",
     "@typescript-eslint/eslint-plugin": "^6.2.0",
     "@typescript-eslint/parser": "^6.2.0",
     "eslint": "^8.45.0",
@@ -69,5 +80,9 @@
     "rimraf": "^5.0.1",
     "ts-jest": "^29.1.1",
     "typescript": "^5.1.6"
+  },
+  "dependencies": {
+    "jsrsasign": "^10.8.6",
+    "uuid": "^9.0.0"
   }
 }
