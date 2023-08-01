@@ -57,7 +57,11 @@ interface XSessionPushEventOptions {
   useJSONStringify?: boolean;
 }
 
-class XSessionPushEvent extends XSessionEventEmitter {
+interface XSessionClientSessionId {
+  get getClientSessionId(): string | undefined;
+}
+
+class XSessionPushEvent extends XSessionEventEmitter implements XSessionClientSessionId {
   protected __CLASSNAME__ = 'XSessionPushEvent';
 
   private _opened = false;
@@ -75,7 +79,18 @@ class XSessionPushEvent extends XSessionEventEmitter {
     this.onmessage = this.onmessage.bind(this);
   }
 
+  get getClientSessionId(): string | undefined {
+    throw new Error('Method not implemented.');
+  }
+
   public start(): void {
+    if (this.isOpen()) {
+      return;
+    }
+    this.connect();
+  }
+
+  public restart(): void {
     this.connect();
   }
 
@@ -90,7 +105,9 @@ class XSessionPushEvent extends XSessionEventEmitter {
 
   private onopen(ev: Event) {
     this._opened = true;
-    console.log(`${this.__CLASSNAME__}: Connection opened`);
+    console.log(
+      `${this.__CLASSNAME__}: Connection opened, x-session-client: ${this.getClientSessionId}`
+    );
     // If a reconnection interval isn't active, activate it since we're now connected
     if (!this._reconnectIntervalId) {
       this._reconnectIntervalId = setInterval(
@@ -166,6 +183,14 @@ class XSessionPushEvent extends XSessionEventEmitter {
       clearInterval(this._reconnectIntervalId);
       this._reconnectIntervalId = null;
     }
+  }
+
+  private isOpen(): boolean {
+    if (this._opened || this._eventSource?.readyState === EventSource.OPEN) {
+      this._opened = true;
+      return true;
+    }
+    return false;
   }
 
   private closeIfOpen(): void {

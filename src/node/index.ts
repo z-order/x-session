@@ -1,7 +1,6 @@
 import XSession from './x-session-browser.js';
-// import xsession from './x-session-wrappers';
+export { XSessionWrapper as xsession } from './x-session-wrapper.js';
 export { XSession };
-// export default xsession;
 
 /*
 import uuid from './dist/index.js';

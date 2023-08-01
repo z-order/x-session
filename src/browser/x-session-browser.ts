@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 
 import type { XSessionCookieOptions, XSessionCookie, XSessionNavInfo } from './x-browser.js';
-import { getCookieOptions, getCookieString } from './x-browser.js';
+import { getCookieOptions, getCookieString, getCookie } from './x-browser.js';
 import { getNavigationInfo, getDomainFromUrl } from './x-browser.js';
 import XSessionPushEvent, { XSessionPushEventOptions } from './sse-browser.js';
 
@@ -10,19 +10,32 @@ import { KJUR, KEYUTIL } from 'jsrsasign'; // for the browser
 
 // Dynamic imports are only supported when the '--module' flag is set to
 // - 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
-let randomUUID: () => string;
+let _randomUUID: () => string;
 // Detect if we're in Node.js
-if (typeof process !== 'undefined' && process.versions != null && process.versions.node != null) {
+if (typeof window === null || typeof window === 'undefined') {
   // We're in Node.js
   import('node:crypto').then((crypto) => {
-    randomUUID = crypto.randomUUID;
+    _randomUUID = crypto.randomUUID;
   });
 } else {
   // We're in the browser
   import('uuid').then((uuid) => {
-    randomUUID = uuid.v4;
+    _randomUUID = uuid.v4;
   });
 }
+//
+// Above code is not working in the browser:
+// 1) [HMR][Svelte] Unrecoverable HMR error in <Root>: next update will trigger a full reload
+// 2) x-session-browser.ts:101 Uncaught (in promise) TypeError: randomUUID is not a function
+//    at XSession.createXSession (x-session-browser.ts:101:29)
+//    at +layout.svelte:45:12
+//
+// or
+//
+// 1) TypeError: Cannot read property 'randomUUID' of undefined
+//
+// So, I have to use the following code instead(but let's keep and check the problems the above code for the future):
+import { v4 as randomUUID } from 'uuid';
 
 type XSessionMessage = {
   msgType: string;
@@ -38,9 +51,28 @@ interface XSessionOptions extends XSessionPushEventOptions {
   headers?: XSessionHttpHeaders;
 }
 
+type XSessionCheckStatus =
+  | 'x-new-session' // ns
+  | 'x-enable-session' // en
+  | 'x-expired-session' // ex
+  | 'x-invalid-session' // in
+  | 'x-unknown-session' // un
+  | 'x-certified-session' // ce
+  | 'x-empty-session'; // empty
+
+type XSessionCookieData = {
+  status: string;
+  clientSessionId: string;
+  sessionOptions: XSessionOptions;
+  cookieOptions: XSessionCookieOptions | null;
+  payload: XSessionNavInfo;
+};
+
 class XSession extends XSessionPushEvent {
   protected __CLASSNAME__ = 'XSession';
 
+  private _isDisabledSession = true;
+  private _sessionStatus: XSessionCheckStatus = 'x-empty-session';
   private _clientSessionId: string | null = null;
   private _sessionOptions: XSessionOptions;
   private _sessionOptionsVolatile: XSessionOptions | null = null;
@@ -93,7 +125,14 @@ class XSession extends XSessionPushEvent {
     return httpHeaders;
   }
 
-  public createXSession() {
+  public createXSession(): XSession {
+    // Check checkXSession() and isDisabled() chain or new XSession() instance
+    if (!this._isDisabledSession) {
+      // Initialize checkXSession() and isDisabled() chain
+      this._isDisabledSession = true;
+      return this;
+    }
+
     // Load the browser information
     this._browserInfo = getNavigationInfo();
 
@@ -101,9 +140,11 @@ class XSession extends XSessionPushEvent {
     this._clientSessionId = randomUUID();
 
     // Set cookie the browser information encrypted with specific algorithm
-    const cookieValue = {
-      status: 'new-session',
+    const cookieValue: XSessionCookieData = {
+      status: 'x-new-session',
       clientSessionId: this._clientSessionId,
+      sessionOptions: this._sessionOptions,
+      cookieOptions: this._cookieOptions,
       payload: this._browserInfo,
     };
     const domainOrigin = getDomainFromUrl(this._browserInfo.windowLocation?.origin || 'localhost');
@@ -128,15 +169,124 @@ class XSession extends XSessionPushEvent {
             secure: false,
           })
     );
+    return this;
+  }
+
+  public get getClientSessionId(): string | undefined {
+    if (this._clientSessionId === null || this._clientSessionId === undefined) {
+      const cookieData = getCookie('x-session-data');
+      if (
+        cookieData === null ||
+        cookieData === undefined ||
+        cookieData === '' ||
+        cookieData.length < 256
+      ) {
+        return undefined;
+      }
+      const xSessionData = this.getSessionData(cookieData) as XSessionCookieData;
+      if (xSessionData === null || xSessionData === undefined) {
+        return undefined;
+      }
+      this._clientSessionId = xSessionData.clientSessionId || null;
+      this._sessionOptions = xSessionData.sessionOptions;
+      this._cookieOptions = xSessionData.cookieOptions;
+      this._browserInfo = xSessionData.payload;
+      if (this._clientSessionId === null) {
+        return undefined;
+      }
+      return this._clientSessionId;
+    }
+    return this._clientSessionId;
+  }
+
+  public checkXSession(): XSession {
+    const xSessionData = getCookie('x-session-data');
+    const cookieIV = xSessionData?.slice(0, 2) || '';
+    switch (cookieIV) {
+      case 'ns':
+        this._isDisabledSession = false;
+        this._sessionStatus = 'x-new-session';
+        break;
+      case 'en':
+        this._isDisabledSession = false;
+        this._sessionStatus = 'x-enable-session';
+        break;
+      case 'ex':
+        this._isDisabledSession = true;
+        this._sessionStatus = 'x-expired-session';
+        break;
+      case 'in':
+        this._isDisabledSession = true;
+        this._sessionStatus = 'x-invalid-session';
+        break;
+      case 'un':
+        this._isDisabledSession = true;
+        this._sessionStatus = 'x-unknown-session';
+        break;
+      case 'ce':
+        this._isDisabledSession = false;
+        this._sessionStatus = 'x-certified-session';
+        break;
+      default:
+        this._isDisabledSession = true;
+        this._sessionStatus = 'x-empty-session';
+        break;
+    }
+    return this;
+  }
+
+  public isDisabled(): XSession {
+    let isDisabled = true;
+    switch (this._sessionStatus) {
+      case 'x-new-session':
+      case 'x-enable-session':
+      case 'x-certified-session':
+        isDisabled = false;
+        break;
+      case 'x-expired-session':
+      case 'x-invalid-session':
+      case 'x-unknown-session':
+      case 'x-empty-session':
+      default:
+        isDisabled = true;
+        break;
+    }
+    this._isDisabledSession = isDisabled;
+    return this;
   }
 
   private getJsonWebToken(payload: object) {
     /* for the node only
-    const token = jwt.sign({ data: payload }, 'new-session', { algorithm: 'HS256' });
+    const token = jwt.sign({ data: payload }, 'x-new-session', { algorithm: 'HS256' });
     */
     // for the node and browser
-    const token = KJUR.jws.JWS.sign(null, { alg: 'HS256' }, payload, { utf8: 'new-session' });
+    const token = KJUR.jws.JWS.sign(null, { alg: 'HS256' }, payload, { utf8: 'x-new-session' });
     return `ns${token}`;
+  }
+
+  private getSessionData(token: string) {
+    const __FUNCTION__ = 'getSessionData()';
+    /* for the node only
+    try {
+      const decoded = jwt.verify(token, 'x-new-session', { algorithms: ['HS256'] });
+      console.log(decoded.data); // This will print the original payload
+    } catch (err) {
+      console.error('Token verification failed:', err);
+    }
+    */
+    // for the node and browser
+    const isValid = KJUR.jws.JWS.verify(token.slice(2, token.length), { utf8: 'x-new-session' }, [
+      'HS256',
+    ]);
+    if (isValid) {
+      const parsedToken = KJUR.jws.JWS.parse(token.slice(2, token.length));
+      return parsedToken.payloadObj;
+    } else {
+      console.error(
+        `${this.__CLASSNAME__}::${__FUNCTION__} Token verification failed. Invalid token: ${token}`
+      );
+    }
+    return null;
   }
 
   public config(options: XSessionOptions): XSession {

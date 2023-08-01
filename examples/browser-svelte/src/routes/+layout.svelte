@@ -1,10 +1,8 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
-	import { xsession } from '$lib/index';
+	import { xsession } from '$lib/xsession';
 	let msgFromServer: object | null = null;
-	//
-	// XSession: create instance, on, start, close
-	//
+
 	$: {
 		xsession.on('open', (ev: any) => {
 			console.log('XSession: open', ev);
@@ -16,16 +14,14 @@
 			console.log('XSession: error', ev);
 		});
 		xsession.on('message', (msg: { type: any; data: any }) => {
-			msgFromServer = msg;
 			switch (msg.type) {
 				case 'sticker':
+					msgFromServer = msg;
 					console.log('on:message(sticker)', msg.data);
 					break;
 				case 'text':
+					msgFromServer = msg;
 					console.log('on:message(text)', msg.data);
-					break;
-				case 'push-data':
-					console.log('on:message(push-data)', msg.data);
 					break;
 				default:
 					break;
@@ -37,12 +33,9 @@
 		xsession.on('text', (msg: { type: any; data: any }) =>
 			console.log('on:text', msg.type, msg.data, '=> 👍')
 		);
-		xsession.on('push-data', (msg: { type: any; data: any }) =>
-			console.log('on:push-data', msg.type, msg.data, '=> 👍')
-		);
 	}
 	onMount(() => {
-		xsession.start();
+		xsession.checkXSession().isDisabled().createXSession().start();
 	});
 	onDestroy(() => {
 		xsession.close();
@@ -60,6 +53,7 @@
 			<em>no message</em>
 		{/if}
 	</code>
+	<slot />
 </main>
 
 <style>

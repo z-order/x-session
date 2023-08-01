@@ -150,6 +150,17 @@ const getCookieString = (
   return cookieString;
 };
 
+const getCookie = (cookieName: string): string | null => {
+  const cookies = document.cookie.split('; ');
+  for (const cookie of cookies) {
+    const [name, ...rest] = cookie.split('=');
+    if (name === cookieName) {
+      return decodeURIComponent(rest.join('='));
+    }
+  }
+  return null;
+};
+
 type XSessionNavInfo = {
   appCodeName: string;
   appName: string;
@@ -259,5 +270,5 @@ const getDomainFromUrl = (url: string) => {
 };
 
 export type { XSessionCookieOptions, XSessionCookie, XSessionNavInfo };
-export { getCookieOptions, getCookieString };
+export { getCookieOptions, getCookieString, getCookie };
 export { getNavigationInfo, getDomainFromUrl };
