@@ -1,17 +1,28 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { xsession } from '$lib/xsession';
+	import { onDestroy, onMount } from 'svelte';
 	let msgFromServer: any;
 
-	$: {
-		xsession.on('push-data', (msg: { type: any; data: any }) => {
-			msgFromServer = msg;
-		});
+	$: xsessionEventID = xsession.on('push-data', (msg: { type: any; data: any }) => {
+		msgFromServer = msg;
+	});
+
+	onDestroy(() => {
+		xsession.off(xsessionEventID);
+	});
+
+	function moveToXSessionSendPage() {
+		goto('/xsession-send');
 	}
 </script>
 
 <main>
-	<h1>+page.svelte</h1>
-	<h2>Message from server:</h2>
+	<h2>+page.svelte</h2>
+	<h3>Message from server:</h3>
+	<form>
+		<button type="button" on:click={moveToXSessionSendPage}>XSession.send()</button>
+	</form>
 	<code lang="js">
 		{#if msgFromServer}
 			<pre>{JSON.stringify(msgFromServer, null, 2)}</pre>
@@ -19,7 +30,7 @@
 			<em>no message</em>
 		{/if}
 	</code>
-	<slot />
+	<p />
 </main>
 
 <style>
@@ -44,5 +55,21 @@
 	pre {
 		background-color: black;
 		color: aqua;
+	}
+	button {
+		display: inline-block;
+		padding: 0.5em 0.5em;
+		margin: 0.25em 0.25em;
+		border-radius: 0.2em;
+		border: 0.1em solid rgba(87, 175, 172, 0.2);
+		box-sizing: border-box;
+		text-decoration: none;
+		font-family: 'Roboto', sans-serif;
+		font-weight: 300;
+		text-shadow: 0 0.04em 0.04em rgba(0, 0, 0, 0.35);
+		text-align: center;
+		transition: all 0.2s;
+		background-color: rgb(56, 58, 59);
+		color: rgb(122, 227, 231);
 	}
 </style>

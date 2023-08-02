@@ -293,13 +293,10 @@ class XSession extends XSessionPushEvent {
     options.headers = this.getHttpHeaders(options.headers || new Headers());
     const headersInVolatile = this._sessionOptionsVolatile?.headers || null;
     if (!this._sessionOptionsVolatile) {
-      this._sessionOptionsVolatile = new Object() as XSessionOptions;
-      this._sessionOptionsVolatile = this._sessionOptions;
+      this._sessionOptionsVolatile = { ...this._sessionOptions };
     }
-    Object.entries(options).forEach(([key, value]) => {
-      // @ts-ignore
-      this._sessionOptionsVolatile[key] = value;
-    });
+    // Merge options into _sessionOptionsVolatile, overwriting existing properties
+    Object.assign(this._sessionOptionsVolatile, options);
     if (headersInVolatile) return this.setHeaders(headersInVolatile);
     return this;
   }
@@ -307,8 +304,7 @@ class XSession extends XSessionPushEvent {
   public setHeaders(headers: XSessionHttpHeaders): XSession {
     const httpHeaders = this.getHttpHeaders(headers || new Headers());
     if (!this._sessionOptionsVolatile) {
-      this._sessionOptionsVolatile = new Object() as XSessionOptions;
-      this._sessionOptionsVolatile = this._sessionOptions;
+      this._sessionOptionsVolatile = { ...this._sessionOptions };
     }
     httpHeaders.forEach(([key, value]) => {
       this._sessionOptionsVolatile?.headers?.append(key, value);
@@ -320,6 +316,7 @@ class XSession extends XSessionPushEvent {
   }
 
   public async send(msgTypeOrData: string | any, msgData?: any): Promise<XSessionMessage> {
+    const __CLASSNAME__ = this.__CLASSNAME__;
     const __FUNCTION__ = 'send()';
     if (!this._sessionOptionsVolatile) {
       throw new Error(
@@ -329,7 +326,7 @@ class XSession extends XSessionPushEvent {
     const _msgType = typeof msgTypeOrData === 'string' ? msgTypeOrData : 'message';
     const _msgData = typeof msgTypeOrData === 'string' ? msgData : msgTypeOrData;
     const url = this._sessionOptionsVolatile.url || this._sessionOptions.url || 'localhost';
-    const method = this._sessionOptionsVolatile.method || 'GET';
+    const method = this._sessionOptionsVolatile.method || 'POST';
     const headers = this._sessionOptionsVolatile.headers || new Headers();
     const apiKey = this._sessionOptionsVolatile.apiKey || '';
     const sessionId = this._clientSessionId || '';
@@ -339,8 +336,63 @@ class XSession extends XSessionPushEvent {
     headers.append('x-session-ip', clientIPAddress);
     // After set the headers and before returning, reset the volatile options
     this._sessionOptionsVolatile = null;
-    return new Promise(async (resolve, reject): Promise<XSessionMessage> => {
-      const resp = await fetch(url, {
+    return await new Promise(async (resolve, reject): Promise<XSessionMessage> => {
+      try {
+        const res = await fetch(url, {
+          method: method,
+          headers: headers,
+          body: JSON.stringify({
+            msgType: _msgType,
+            msgData: _msgData,
+          }),
+        })
+          .then(async (response: Response) => {
+            const jsonData = await response.json();
+            if (jsonData.msgType === null || jsonData.msgType === undefined) {
+              throw new Error(
+                `${__CLASSNAME__}::${__FUNCTION__} Invalid response from the server. Cannot find 'msgType' property in the response.`
+              );
+            }
+            if (jsonData.msgData === null || jsonData.msgData === undefined) {
+              throw new Error(
+                `${__CLASSNAME__}::${__FUNCTION__} Invalid response from the server. Cannot find 'msgData' property in the response.`
+              );
+            }
+            resolve(jsonData as XSessionMessage);
+          })
+          .catch((error: any) => {
+            console.error(
+              `${__CLASSNAME__}::${__FUNCTION__} fetch error catched! 👎 error msg:`,
+              error ? error.message : 'unknown',
+              error
+            );
+            reject(error);
+          });
+      } catch (error) {
+        console.error(
+          `${__CLASSNAME__}::${__FUNCTION__} fetch try/catch catched! 👎 error:`,
+          error
+        );
+        reject(error);
+      }
+      // The flow will never reach here, but just in case, return the following
+      const statusMessage = `${__CLASSNAME__}::${__FUNCTION__}: Internal Server Error (This is a fallback message, it's crucial, patch the bugs and update to the latest version! :))`;
+      return {
+        msgType: _msgType,
+        msgData: {
+          statusCode: 500,
+          statusMessage: statusMessage,
+          data: {
+            error: statusMessage,
+            ..._msgData,
+          },
+        },
+      };
+    });
+
+    /*
+    return await new Promise(async (resolve, reject): Promise<XSessionMessage> => {
+      return await fetch(url, {
         method: method,
         headers: headers,
         body: JSON.stringify({
@@ -348,14 +400,23 @@ class XSession extends XSessionPushEvent {
           msgData: _msgData,
         }),
       })
-        .then(function (response: any) {
-          return response.data;
+        .then(async (response: Response) => {
+          const jsonData = await response.json();
+          console.log('success:', response, 'jsonData:', jsonData);
+          //return await response.json();
+          return jsonData;
         })
-        .catch(function (error: any) {
+        .catch((error: any) => {
+          console.error(
+            `${__CLASSNAME__}::${__FUNCTION__} fetch error catched! 👎 error msg:`,
+            error ? error.message : 'unknown',
+            error
+          );
           reject(error);
         });
-      return resp as XSessionMessage;
+      //return resp as XSessionMessage;
     });
+    */
   }
 }
 

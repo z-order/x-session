@@ -1,10 +1,14 @@
 //
 // EventTarget Object, making a class like as EventEmitter in Node.js
 //
+
+type XSessionEventListener = { id: number; fn: (...args: any) => void };
+
 class XSessionEventEmitter extends EventTarget {
   protected __CLASSNAME__ = 'XSessionEventEmitter';
 
-  private _listeners: { [key: string]: Array<(...args: any) => void> };
+  private _listenerId = 0;
+  private _listeners: { [key: string]: Array<XSessionEventListener> };
 
   constructor() {
     super();
@@ -16,27 +20,47 @@ class XSessionEventEmitter extends EventTarget {
   }
 
   private listener(e: any) {
-    this._listeners[e.type].forEach((customListener: (...args: any) => void) => {
-      customListener(...e.detail.args);
+    this._listeners[e.type].forEach(({ id, fn }: { id: number; fn: (...args: any) => void }) => {
+      fn(...e.detail.args);
     });
   }
 
-  public on(eventName: string, customListener: (...args: any) => void) {
-    if (!this._listeners[eventName]) {
-      this._listeners[eventName] = [];
+  public on(eventName: string, customListener: (...args: any) => void): number {
+    this._listenerId++;
+    const eventNameOn = eventName + `$$${this._listenerId}`;
+    if (!this._listeners[eventNameOn]) {
+      this._listeners[eventNameOn] = [];
     }
-    this._listeners[eventName].push(customListener);
-    this.addEventListener(eventName, this.listener);
+    this._listeners[eventNameOn].push({ id: this._listenerId, fn: customListener });
+    this.addEventListener(eventNameOn, this.listener);
+    return this._listenerId;
+  }
+
+  public off(listenerId: number) {
+    const eventNamesOn = Object.keys(this._listeners).filter((key) => {
+      return key.endsWith(`$$${listenerId}`);
+    });
+    eventNamesOn.forEach((eventNameOn) => {
+      this.removeEventListener(eventNameOn, this.listener);
+      this._listeners[eventNameOn].forEach(
+        ({ id, fn }: { id: number; fn: (...args: any) => void }) => {
+          this._listeners[eventNameOn].pop();
+        }
+      );
+      delete this._listeners[eventNameOn];
+    });
   }
 
   public emit(eventName: string, ...args: any) {
-    if (!this._listeners[eventName]) {
-      return false;
-    }
-    const event = new CustomEvent(eventName, {
-      detail: { args: args },
+    const eventNamesOn = Object.keys(this._listeners).filter((key) => {
+      return key.startsWith(eventName + '$$');
     });
-    return this.dispatchEvent(event);
+    eventNamesOn.forEach((eventNameOn) => {
+      const event = new CustomEvent(eventNameOn, {
+        detail: { args: args },
+      });
+      return this.dispatchEvent(event);
+    });
   }
 }
 
