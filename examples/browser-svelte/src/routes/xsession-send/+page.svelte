@@ -122,9 +122,6 @@
 		align-items: left;
 		justify-content: center;
 	}
-	h1 {
-		color: #dddddd;
-	}
 	h2 {
 		color: #dddddd;
 	}
