@@ -173,7 +173,12 @@ class XSession extends XSessionPushEvent {
   }
 
   public get getClientSessionId(): string | undefined {
-    if (this._clientSessionId === null || this._clientSessionId === undefined) {
+    if (
+      this._clientSessionId === null ||
+      this._clientSessionId === undefined ||
+      this._browserInfo.windowLocation?.origin === null ||
+      this._browserInfo.windowLocation?.origin === undefined
+    ) {
       const cookieData = getCookie('x-session-data');
       if (
         cookieData === null ||
@@ -292,12 +297,22 @@ class XSession extends XSessionPushEvent {
   private isSameOrigin(xssRequestTarget: string) {
     const __CLASSNAME__ = this.__CLASSNAME__;
     const __FUNCTION__ = 'isSameOrigin()';
-    const xssRequestOrigin = this._browserInfo.windowLocation?.origin || null;
+    let xssRequestOrigin = this._browserInfo.windowLocation?.origin || null;
     if (!xssRequestOrigin) {
-      console.error(
-        `${__CLASSNAME__}::${__FUNCTION__} xssRequestOrigin is null! 👎 You must check createXSession() has been initialized properly before calling send() !!!`
-      );
-      return false;
+      if (this._sessionOptions.msgDebug) {
+        console.log(
+          `${__CLASSNAME__}: Cross-site scripting(XSS), cross-site request forgery(CSRF) check ... x-session-client: ${this.getClientSessionId}`
+        );
+      } else {
+        this.getClientSessionId;
+      }
+      xssRequestOrigin = this._browserInfo.windowLocation?.origin || null;
+      if (!xssRequestOrigin) {
+        console.error(
+          `${__CLASSNAME__}::${__FUNCTION__} xssRequestOrigin is null! 👎 You must check createXSession() has been initialized properly before calling send() !!!`
+        );
+        return false;
+      }
     }
     try {
       const urlOrigin = new URL(xssRequestOrigin);
@@ -346,9 +361,12 @@ class XSession extends XSessionPushEvent {
     const __CLASSNAME__ = this.__CLASSNAME__;
     const __FUNCTION__ = 'send()';
     if (!this._sessionOptionsVolatile) {
+      /*
       throw new Error(
         `${this.__CLASSNAME__}::${__FUNCTION__} The session configuration is not set yet. call config() method first before send().`
       );
+      */
+      this._sessionOptionsVolatile = { ...this._sessionOptions };
     }
     const _msgType = typeof msgTypeOrData === 'string' ? msgTypeOrData : 'message';
     const _msgData = typeof msgTypeOrData === 'string' ? msgData : msgTypeOrData;
@@ -449,6 +467,7 @@ class XSession extends XSessionPushEvent {
   }
 }
 
+export type { XSessionOptions, XSessionCookieOptions, XSessionMessage };
 export default XSession;
 
 /*
