@@ -88,7 +88,7 @@
 </script>
 
 <main>
-	<h2>xsession-send/+page.svelte</h2>
+	<h2>xsession-send-static/+page.svelte</h2>
 	<h3>Message from server:</h3>
 	<form>
 		<button type="button" on:click={moveToHome}>Move to Home</button>

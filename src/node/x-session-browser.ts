@@ -173,7 +173,12 @@ class XSession extends XSessionPushEvent {
   }
 
   public get getClientSessionId(): string | undefined {
-    if (this._clientSessionId === null || this._clientSessionId === undefined) {
+    if (
+      this._clientSessionId === null ||
+      this._clientSessionId === undefined ||
+      this._browserInfo.windowLocation?.origin === null ||
+      this._browserInfo.windowLocation?.origin === undefined
+    ) {
       const cookieData = getCookie('x-session-data');
       if (
         cookieData === null ||
@@ -289,6 +294,43 @@ class XSession extends XSessionPushEvent {
     return null;
   }
 
+  private isSameOrigin(xssRequestTarget: string) {
+    const __CLASSNAME__ = this.__CLASSNAME__;
+    const __FUNCTION__ = 'isSameOrigin()';
+    let xssRequestOrigin = this._browserInfo.windowLocation?.origin || null;
+    if (!xssRequestOrigin) {
+      if (this._sessionOptions.msgDebug) {
+        console.log(
+          `${__CLASSNAME__}: Cross-site scripting(XSS), cross-site request forgery(CSRF) check ... x-session-client: ${this.getClientSessionId}`
+        );
+      } else {
+        this.getClientSessionId;
+      }
+      xssRequestOrigin = this._browserInfo.windowLocation?.origin || null;
+      if (!xssRequestOrigin) {
+        console.error(
+          `${__CLASSNAME__}::${__FUNCTION__} xssRequestOrigin is null! 👎 You must check createXSession() has been initialized properly before calling send() !!!`
+        );
+        return false;
+      }
+    }
+    try {
+      const urlOrigin = new URL(xssRequestOrigin);
+      const urlTarget = new URL(xssRequestTarget);
+      return (
+        urlOrigin.protocol === urlTarget.protocol &&
+        urlOrigin.hostname === urlTarget.hostname &&
+        urlOrigin.port === urlTarget.port
+      );
+    } catch (error) {
+      console.error(
+        `${__CLASSNAME__}::${__FUNCTION__} cross-site request check failed! 👎 error:`,
+        error
+      );
+      return false;
+    }
+  }
+
   public config(options: XSessionOptions): XSession {
     options.headers = this.getHttpHeaders(options.headers || new Headers());
     const headersInVolatile = this._sessionOptionsVolatile?.headers || null;
@@ -306,7 +348,7 @@ class XSession extends XSessionPushEvent {
     if (!this._sessionOptionsVolatile) {
       this._sessionOptionsVolatile = { ...this._sessionOptions };
     }
-    httpHeaders.forEach(([key, value]) => {
+    httpHeaders.forEach((value, key) => {
       this._sessionOptionsVolatile?.headers?.append(key, value);
     });
     if (!this._sessionOptionsVolatile?.headers?.has('Content-Type')) {
@@ -319,9 +361,12 @@ class XSession extends XSessionPushEvent {
     const __CLASSNAME__ = this.__CLASSNAME__;
     const __FUNCTION__ = 'send()';
     if (!this._sessionOptionsVolatile) {
+      /*
       throw new Error(
         `${this.__CLASSNAME__}::${__FUNCTION__} The session configuration is not set yet. call config() method first before send().`
       );
+      */
+      this._sessionOptionsVolatile = { ...this._sessionOptions };
     }
     const _msgType = typeof msgTypeOrData === 'string' ? msgTypeOrData : 'message';
     const _msgData = typeof msgTypeOrData === 'string' ? msgData : msgTypeOrData;
@@ -331,9 +376,39 @@ class XSession extends XSessionPushEvent {
     const apiKey = this._sessionOptionsVolatile.apiKey || '';
     const sessionId = this._clientSessionId || '';
     const clientIPAddress = this._sessionOptionsVolatile.clientIPAddress || '';
-    headers.append('x-session-key', apiKey);
-    headers.append('x-session-client', sessionId);
-    headers.append('x-session-ip', clientIPAddress);
+    try {
+      if (apiKey && apiKey.length > 0) {
+        headers.append('x-session-key', apiKey);
+      }
+      if (sessionId && sessionId.length > 0) {
+        headers.append('x-session-client', sessionId);
+      }
+      if (clientIPAddress && clientIPAddress.length > 0) {
+        headers.append('x-session-ip', clientIPAddress);
+      }
+      if (!this.isSameOrigin(url)) {
+        let xsessionCookie = null;
+        const xsessionData = getCookie('x-session-data');
+        const xsessionToken = getCookie('x-session-token');
+        const xsessionId = getCookie('x-session-id');
+        if (xsessionData && xsessionData.length > 0) {
+          xsessionCookie = `x-session-data=${xsessionData}`;
+          if (xsessionToken && xsessionToken.length > 0) {
+            xsessionCookie += `; x-session-token=${xsessionToken}`;
+          }
+          if (xsessionId && xsessionId.length > 0) {
+            xsessionCookie += `; x-session-id=${xsessionId}`;
+          }
+          headers.append('x-session-cookie', xsessionCookie);
+        }
+      }
+    } catch (error) {
+      // After set the headers and before returning, reset the volatile options
+      this._sessionOptionsVolatile = null;
+      throw new Error(
+        `${this.__CLASSNAME__}::${__FUNCTION__} Error on appending http headers! 👎 error msg: ${error}`
+      );
+    }
     // After set the headers and before returning, reset the volatile options
     this._sessionOptionsVolatile = null;
     return await new Promise(async (resolve, reject): Promise<XSessionMessage> => {
@@ -350,12 +425,12 @@ class XSession extends XSessionPushEvent {
             const jsonData = await response.json();
             if (jsonData.msgType === null || jsonData.msgType === undefined) {
               throw new Error(
-                `${__CLASSNAME__}::${__FUNCTION__} Invalid response from the server. Cannot find 'msgType' property in the response.`
+                `${__CLASSNAME__}::${__FUNCTION__} Invalid response from the server. Can not find 'msgType' property in the response.`
               );
             }
             if (jsonData.msgData === null || jsonData.msgData === undefined) {
               throw new Error(
-                `${__CLASSNAME__}::${__FUNCTION__} Invalid response from the server. Cannot find 'msgData' property in the response.`
+                `${__CLASSNAME__}::${__FUNCTION__} Invalid response from the server. Can not find 'msgData' property in the response.`
               );
             }
             resolve(jsonData as XSessionMessage);
@@ -389,37 +464,10 @@ class XSession extends XSessionPushEvent {
         },
       };
     });
-
-    /*
-    return await new Promise(async (resolve, reject): Promise<XSessionMessage> => {
-      return await fetch(url, {
-        method: method,
-        headers: headers,
-        body: JSON.stringify({
-          msgType: _msgType,
-          msgData: _msgData,
-        }),
-      })
-        .then(async (response: Response) => {
-          const jsonData = await response.json();
-          console.log('success:', response, 'jsonData:', jsonData);
-          //return await response.json();
-          return jsonData;
-        })
-        .catch((error: any) => {
-          console.error(
-            `${__CLASSNAME__}::${__FUNCTION__} fetch error catched! 👎 error msg:`,
-            error ? error.message : 'unknown',
-            error
-          );
-          reject(error);
-        });
-      //return resp as XSessionMessage;
-    });
-    */
   }
 }
 
+export type { XSessionOptions, XSessionCookieOptions, XSessionMessage };
 export default XSession;
 
 /*
