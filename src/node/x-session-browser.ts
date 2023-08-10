@@ -49,6 +49,7 @@ interface XSessionOptions extends XSessionPushEventOptions {
   clientIPAddress?: string;
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE' | 'OPTIONS';
   headers?: XSessionHttpHeaders;
+  cookies?: XSessionCookie[];
 }
 
 type XSessionCheckStatus =
@@ -101,6 +102,23 @@ class XSession extends XSessionPushEvent {
     this._sessionOptions = options;
     this._sessionOptions.headers = this.getHttpHeaders(options.headers || new Headers());
     this._cookieOptions = cookieOptions || null;
+  }
+
+  private getCookie(cookieName: string): string | null {
+    if (
+      typeof window !== 'undefined' &&
+      typeof document !== 'undefined' &&
+      typeof document.cookie !== 'undefined'
+    ) {
+      return getCookie('x-session-data');
+    } else {
+      if (this._sessionOptionsVolatile?.cookies) {
+        return getCookie('x-session-data', this._sessionOptionsVolatile?.cookies);
+      } else if (this._sessionOptions.cookies) {
+        return getCookie('x-session-data', this._sessionOptions.cookies);
+      }
+      return null;
+    }
   }
 
   private getHttpHeaders(headers: XSessionHttpHeaders): Headers {
@@ -179,7 +197,7 @@ class XSession extends XSessionPushEvent {
       this._browserInfo.windowLocation?.origin === null ||
       this._browserInfo.windowLocation?.origin === undefined
     ) {
-      const cookieData = getCookie('x-session-data');
+      const cookieData = this.getCookie('x-session-data');
       if (
         cookieData === null ||
         cookieData === undefined ||
@@ -205,7 +223,7 @@ class XSession extends XSessionPushEvent {
   }
 
   public checkXSession(): XSession {
-    const xSessionData = getCookie('x-session-data');
+    const xSessionData = this.getCookie('x-session-data');
     const cookieIV = xSessionData?.slice(0, 2) || '';
     switch (cookieIV) {
       case 'ns':
@@ -388,9 +406,9 @@ class XSession extends XSessionPushEvent {
       }
       if (!this.isSameOrigin(url)) {
         let xsessionCookie = null;
-        const xsessionData = getCookie('x-session-data');
-        const xsessionToken = getCookie('x-session-token');
-        const xsessionId = getCookie('x-session-id');
+        const xsessionData = this.getCookie('x-session-data');
+        const xsessionToken = this.getCookie('x-session-token');
+        const xsessionId = this.getCookie('x-session-id');
         if (xsessionData && xsessionData.length > 0) {
           xsessionCookie = `x-session-data=${xsessionData}`;
           if (xsessionToken && xsessionToken.length > 0) {
