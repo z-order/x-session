@@ -54,6 +54,22 @@ Browser(CSR) <- [HTTP(S) Push event] <- Push Server(SSE) <- [HTTP(S) Push event]
     └ x-session browser module              └ x-session node module
 ```
 
+## `SvelteKit` integrated architecture for the secure session
+
+```r
+SSR.                              CSR.
+(In the root "routes/" directory)
++layout.server.ts.                +layout.svelte
+------------------------------------------------
+Session check(No)        —>       createClientSession
+                                          │
+send() with API Key      <—       API Key check(No)
+        │
+Set Cookie from API Server
+        │
+Session check(Yes)       —>       API calls
+```
+
 ## Refs: Project Tree Structure
 
 ```r
@@ -79,13 +95,13 @@ x-session/
 
 `x-session` module on RESTful API Calls
 
-- [ ] x-session browser module
-- [ ] x-session node module on SvelteKit(+[page.]server.ts)
+- [O] x-session browser module
+- [O] x-session node module on SvelteKit(+[page.]server.ts)
 
 `x-session` module on Push Event(SSE)
 
-- [ ] x-session browser module
-- [ ] x-session node module on Push Server(SSE)
+- [O] x-session browser module
+- [O] x-session node module on Push Server(SSE)
 
 ## Refs: source app.html
 

@@ -150,15 +150,30 @@ const getCookieString = (
   return cookieString;
 };
 
-const getCookie = (cookieName: string): string | null => {
-  const cookies = document.cookie.split('; ');
-  for (const cookie of cookies) {
-    const [name, ...rest] = cookie.split('=');
-    if (name === cookieName) {
-      return decodeURIComponent(rest.join('='));
+const getCookie = (cookieName: string, cookies?: XSessionCookie[]): string | null => {
+  if (cookies && cookies.length > 0) {
+    for (const cookie of cookies) {
+      if (cookie.name === cookieName) {
+        return decodeURIComponent(cookie.value);
+      }
     }
+    return null;
+  } else if (
+    typeof window !== 'undefined' &&
+    typeof document !== 'undefined' &&
+    typeof document.cookie !== 'undefined'
+  ) {
+    const cookies = document.cookie.split('; ');
+    for (const cookie of cookies) {
+      const [name, ...rest] = cookie.split('=');
+      if (name === cookieName) {
+        return decodeURIComponent(rest.join('='));
+      }
+    }
+    return null;
+  } else {
+    return null;
   }
-  return null;
 };
 
 type XSessionNavInfo = {

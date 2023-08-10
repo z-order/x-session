@@ -13,7 +13,7 @@
 	});
 
 	function moveToXSessionSendPage() {
-		goto('/xsession-send');
+		goto('/1-xsession-send');
 	}
 </script>
 

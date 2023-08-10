@@ -10,7 +10,7 @@
     "x-session-id",
     "x-session-token"
   ],
-  "main": "./dist/node/cjs/index.js",
+  "main": "./dist/node/mjs/index.js",
   "module": "./dist/node/mjs/index.js",
   "browser": "./dist/browser/mjs/index.js",
   "types": "./dist/browser/mjs/index.d.ts",
