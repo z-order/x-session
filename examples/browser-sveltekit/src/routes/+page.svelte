@@ -12,8 +12,14 @@
 		xsession.off(xsessionEventID);
 	});
 
-	function moveToXSessionSendPage() {
+	function moveToXSessionSendPage1() {
 		goto('/1-xsession-send');
+	}
+	function moveToXSessionSendPage2() {
+		goto('/2-xsession-send-static');
+	}
+	function moveToXSessionSendPage3() {
+		goto('/3-xsession-send-server-side');
 	}
 </script>
 
@@ -21,7 +27,15 @@
 	<h2>+page.svelte</h2>
 	<h3>Message from server:</h3>
 	<form>
-		<button type="button" on:click={moveToXSessionSendPage}>XSession.send()</button>
+		<button type="button" on:click={moveToXSessionSendPage1}
+			>XSession.send() using same instance</button
+		>
+		<button type="button" on:click={moveToXSessionSendPage2}
+			>XSession.send() making new instance</button
+		>
+		<button type="button" on:click={moveToXSessionSendPage3}
+			>XSession.send() server-side sending</button
+		>
 	</form>
 	<code lang="js">
 		{#if msgFromServer}

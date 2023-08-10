@@ -3,7 +3,7 @@
 import type { XSessionCookieOptions, XSessionCookie, XSessionNavInfo } from './x-browser.js';
 import { getCookieOptions, getCookieString, getCookie } from './x-browser.js';
 import { getNavigationInfo, getDomainFromUrl } from './x-browser.js';
-import XSessionPushEvent, { XSessionPushEventOptions } from './sse-browser.js';
+import XSessionPushEvent, { XSessionPushEventOptions } from './x-session-sse.js';
 
 // import * as jwt from 'jsonwebtoken'; // for the node only
 import { KJUR, KEYUTIL } from 'jsrsasign'; // for the browser
@@ -102,6 +102,28 @@ class XSession extends XSessionPushEvent {
     this._sessionOptions = options;
     this._sessionOptions.headers = this.getHttpHeaders(options.headers || new Headers());
     this._cookieOptions = cookieOptions || null;
+  }
+
+  private isBrowser(): boolean {
+    if (typeof window === null || typeof window === 'undefined') {
+      return false;
+    }
+    if (typeof document === null || typeof document === 'undefined') {
+      return false;
+    }
+    if (typeof document?.cookie === null || typeof document?.cookie === 'undefined') {
+      return false;
+    }
+    if (typeof window?.navigator === null || typeof window?.navigator === 'undefined') {
+      return false;
+    }
+    if (
+      typeof window?.navigator?.userAgent === null ||
+      typeof window?.navigator?.userAgent === 'undefined'
+    ) {
+      return false;
+    }
+    return true;
   }
 
   private getCookie(cookieName: string): string | null {
@@ -390,21 +412,24 @@ class XSession extends XSessionPushEvent {
     const _msgData = typeof msgTypeOrData === 'string' ? msgData : msgTypeOrData;
     const url = this._sessionOptionsVolatile.url || this._sessionOptions.url || 'localhost';
     const method = this._sessionOptionsVolatile.method || 'POST';
-    const headers = this._sessionOptionsVolatile.headers || new Headers();
+    const headers =
+      [...this._sessionOptionsVolatile.headers?.entries()].length > 0
+        ? this._sessionOptionsVolatile.headers
+        : new Headers({ 'Content-Type': 'application/json' });
     const apiKey = this._sessionOptionsVolatile.apiKey || '';
     const sessionId = this._clientSessionId || '';
     const clientIPAddress = this._sessionOptionsVolatile.clientIPAddress || '';
     try {
       if (apiKey && apiKey.length > 0) {
-        headers.append('x-session-key', apiKey);
+        headers?.append('x-session-key', apiKey);
       }
       if (sessionId && sessionId.length > 0) {
-        headers.append('x-session-client', sessionId);
+        headers?.append('x-session-client', sessionId);
       }
       if (clientIPAddress && clientIPAddress.length > 0) {
-        headers.append('x-session-ip', clientIPAddress);
+        headers?.append('x-session-ip', clientIPAddress);
       }
-      if (!this.isSameOrigin(url)) {
+      if (!this.isSameOrigin(url) || !this.isBrowser()) {
         let xsessionCookie = null;
         const xsessionData = this.getCookie('x-session-data');
         const xsessionToken = this.getCookie('x-session-token');
@@ -417,7 +442,7 @@ class XSession extends XSessionPushEvent {
           if (xsessionId && xsessionId.length > 0) {
             xsessionCookie += `; x-session-id=${xsessionId}`;
           }
-          headers.append('x-session-cookie', xsessionCookie);
+          headers?.append('x-session-cookie', xsessionCookie);
         }
       }
     } catch (error) {

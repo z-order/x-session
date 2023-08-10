@@ -14,6 +14,7 @@
     "target": "ES6",
     "allowJs": true,
     "checkJs": true,
-    "removeComments": true
+    "removeComments": true,
+    "typeRoots": ["./node_modules/x-session", "./node_modules/@types"]
   }
 }

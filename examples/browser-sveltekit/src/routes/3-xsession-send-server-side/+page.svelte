@@ -6,6 +6,15 @@
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 
+	console.log(
+		'\n\n',
+		'routes/3-xsession-send-server-side/+page.svelte',
+		'data =>',
+		data,
+		'form =>',
+		form
+	);
+
 	let postActionWaiting = false;
 	function setPostActionWaiting(waiting: boolean) {
 		if (waiting) {
@@ -72,7 +81,9 @@
 				{#if form?.missingPassword}<p class="error">The password field is required!</p>{/if}
 			</label>
 			<button class="btn" disabled={postActionWaiting}>Login</button>
-			<button class="btn" disabled={postActionWaiting} formaction="?/register">Register</button>
+			<button class="btn" disabled={postActionWaiting} formaction="?/login"
+				>Another login button.</button
+			>
 		</form>
 		<div class="form-popup">
 			{#if postActionWaiting}
@@ -96,16 +107,6 @@
 	}
 	h2 {
 		color: #dddddd;
-	}
-	code {
-		padding: 1em;
-		border-radius: 0.5em;
-		background-color: black;
-		color: aqua;
-	}
-	pre {
-		background-color: black;
-		color: aqua;
 	}
 	button {
 		display: inline-block;

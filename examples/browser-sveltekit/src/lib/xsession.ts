@@ -17,5 +17,3 @@ export const xsession: XSession = new XSession({
 	url: 'http://localhost:3000/events',
 	msgDebug: false
 });
-
-console.debug('xsession', xsession);

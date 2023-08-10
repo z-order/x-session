@@ -1,5 +1,5 @@
-import XSession from './x-session-browser.js';
-import { XSessionOptions, XSessionCookieOptions, XSessionMessage } from './x-session-browser.js';
+import XSession from './x-session-node.js';
+import { XSessionOptions, XSessionCookieOptions, XSessionMessage } from './x-session-node.js';
 
 class XSessionWrapper extends XSession {
   public static config(

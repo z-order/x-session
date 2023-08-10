@@ -6,7 +6,6 @@
 	//  - 'xsession' create a new instance class itself using xessioin.config().send() methods chain.
 	//
 	import { xsession } from 'x-session';
-
 	let apiRespFromServer: any;
 
 	const sendMsgLogin = () => sendMsg('login');

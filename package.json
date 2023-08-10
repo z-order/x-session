@@ -1,14 +1,22 @@
 {
   "name": "x-session",
-  "version": "0.1.0",
-  "description": "x-session client module set for x-session API Server.",
+  "version": "0.1.2",
+  "description": "x-session client module for the browsers including server-side rendering to the SvelteKit +[layout/page].server.ts to communicate with x-session API Server.",
   "author": "Chris Stanley <st.theway@gmail.com>",
   "license": "MIT",
   "keywords": [
+    "xsession",
     "x-session",
     "x-auth",
     "x-session-id",
-    "x-session-token"
+    "x-session-token",
+    "x-session-data",
+    "x-session-key",
+    "x-session-cookie",
+    "x-session-client",
+    "x-session-ip",
+    "svelte",
+    "sveltekit"
   ],
   "main": "./dist/node/mjs/index.js",
   "module": "./dist/node/mjs/index.js",
@@ -70,6 +78,7 @@
     "@types/jsonwebtoken": "^9.0.2",
     "@types/jsrsasign": "^10.5.8",
     "@types/node": "^20.4.5",
+    "@types/node-fetch": "^2.6.4",
     "@types/uuid": "^9.0.2",
     "@typescript-eslint/eslint-plugin": "^6.2.0",
     "@typescript-eslint/parser": "^6.2.0",
@@ -83,6 +92,7 @@
   },
   "dependencies": {
     "jsrsasign": "^10.8.6",
+    "node-fetch": "^3.3.2",
     "uuid": "^9.0.0"
   }
 }

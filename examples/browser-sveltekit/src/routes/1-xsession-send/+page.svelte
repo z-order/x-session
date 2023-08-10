@@ -47,11 +47,11 @@
 			.config({ url: 'http://localhost:3000/api' })
 			.setHeaders({ 'x-session-test': '1234567890' })
 			.send(msgType, msgData)
-			.then((res) => {
+			.then((res: any) => {
 				console.log('res', res, '=> 1) 👍');
 				apiRespFromServer = res;
 			})
-			.catch((err) => {
+			.catch((err: any) => {
 				console.error('err', err, '=> 2) 👎');
 				apiRespFromServer = err;
 			});
@@ -63,11 +63,11 @@
 			.config({ url: 'http://localhost:3000/api' })
 			.setHeaders({ 'x-session-test': '1234567890' })
 			.send('login', { id: 'elonmusk', name: 'twitter', password: 'markzukenberg' })
-			.then((res) => {
+			.then((res: any) => {
 				console.log('res', res, '=> 1) 👍');
 				apiRespFromServer = res;
 			})
-			.catch((err) => {
+			.catch((err: any) => {
 				console.error('err', err, '=> 2) 👎');
 				apiRespFromServer = err;
 			});
