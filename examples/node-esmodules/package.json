@@ -1,0 +1,16 @@
+{
+  "name": "XCache-example-node-esmodules",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node ./example.js",
+    "start": "node ./example.js"
+  },
+  "dependencies": {
+    "x-session": "file:../../npmjs/x-session",
+    "jsrsasign": "^10.8.6",
+    "node-fetch": "^3.3.2",
+    "uuid": "^9.0.0"
+  }
+}
