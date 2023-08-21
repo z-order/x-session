@@ -128,7 +128,7 @@ const runTestXCacheData = async () => {
   console.log('\n\nxcache.status() =>', xcache.status());
   await sleep(1000);
 
-  console.log('\n\ncheck garbage collecter ...');
+  console.log('\n\ncheck garbage collecter ... please wait 60 seconds ...');
   await enterKey();
 
   do {
@@ -142,6 +142,8 @@ const runTestXCacheData = async () => {
 
   console.log('\n\ncheck garbage collecter ... done');
   await enterKey();
+
+  debugShell({ xcache });
 };
 
 const runTestXCacheEvent = async () => {
@@ -157,27 +159,69 @@ const runTestXCacheEvent = async () => {
   console.clear();
 
   //---- xcache event ----//
-  const key = 'client-session-1';
-  const eventName = 'waiting-user-action';
-  const lifecycleSeconds = 5; // seconds
+  let key = 'client-session-1';
+  let eventName = 'waiting-user-action';
+  let lifecycleSeconds = 5; // seconds
 
-  xcache.malloc(key, { key: key, value: { status: 'waiting-user-action' } });
+  xcache.malloc(key, {
+    status: 'waiting-user-action',
+    value1: 'value1',
+    value2: 'value2',
+    value3: 'value3',
+    value4: { value41: 'value41', value42: 'value42' },
+  });
+
+  console.log('\n\nxcache.statusAll() =>', xcache.statusAll());
+  await sleep(1000);
+  await enterKey('xcache.event().on(() => {}) and xcache.event().emit() test ...');
+  console.clear();
+
+  xcache.event(key, eventName).on((cacheEvent) => {
+    console.log(
+      'xcache.event().on(() => {})',
+      `key: ${key}, eventName: ${eventName}`,
+      '\ncacheEvent =>',
+      cacheEvent,
+      '\ncacheEvent.eventStatus =>',
+      cacheEvent.eventStatus,
+      '\ncacheEvent.getCacheData() =>',
+      cacheEvent.getCacheData()
+    );
+  });
+
+  // create event for xcache.event().on(() => {})
+  xcache.createEvent(key, eventName, lifecycleSeconds);
+
+  // add some data to the cache data: xcache.read(key)
+  xcache.read(key).someAddedData1 = 'someAddedData...1';
+
+  // add some data to the cache event: xcache.getCacheEvent(key, eventName).getCacheData()
+  const cacheEvent = xcache.getCacheEvent(key, eventName);
+  if (cacheEvent !== null && cacheEvent !== undefined) {
+    cacheEvent.getCacheData().someAddedData2 = 'someAddedData...2';
+  }
+
+  // emit event using xcache.event().emit() or xcache.triggerEvent(key, eventName)
+  xcache.event(key, eventName).emit(cacheEvent);
 
   console.log('\n\nxcache.statusAll() =>', xcache.statusAll());
   await sleep(1000);
   await enterKey();
   console.clear();
 
-  /*
-  xcache.event(key, eventName).on((data) => {
-    console.log('xcache.event().on(() => {})', 'key:', key, 'eventName:', eventName, 'data:', data);
-  });
+  // remove event handler for xcache.event().on(() => {})
+  xcache.event(key, eventName).off();
 
-  xcache.event(key, eventName).emit({ action: 'messenger-login', status: 'success' });
-  */
+  // delete event of xcache.createEvent(key, eventName, lifecycleSeconds) if it exists (pending)
+  // or it is deleted automatically when the event is triggered or timed out
+  // xcache.event(key, eventName).emit(cacheEvent) will delete the event automatically after it is triggered
+  // and the below line will display two warning messages
+  xcache.deleteEvent(key, eventName);
 
+  // more easy way to create event and process it
   xcache.createEvent(key, eventName, lifecycleSeconds, async (cacheEvent) => {
     console.log('xcache.createEvent(() => {})', 'cacheEvent:', cacheEvent);
+    console.log('cacheEvent.getCacheData()', cacheEvent.getCacheData());
     switch (cacheEvent.eventStatus) {
       case 'conflict': // the same event name already exists (pending)
         break;
@@ -191,14 +235,22 @@ const runTestXCacheEvent = async () => {
     console.clear();
     console.log('\n\nxcache.statusAll() =>', xcache.statusAll());
 
+    // delete event
     await sleep(1000);
-    await enterKey();
+    await enterKey('Press Enter to delete event...inside event handler');
     console.clear();
     console.log('\n\nxcache.deleteEvent() =>', xcache.deleteEvent(key, eventName)); // output: error message with event name is not found
   });
 
+  console.log('\n\nxcache.statusAll() =>', xcache.statusAll());
   await sleep(1000);
   await enterKey();
+  console.clear();
+
+  // delete event
+  console.log('\n\nxcache.deleteEvent() => waiting...');
+  await sleep(1000);
+  await enterKey('Press Enter to delete event...outside event handler');
   console.clear();
   console.log('\n\nxcache.deleteEvent() =>', xcache.deleteEvent(key, eventName)); // output: error message with event name is not found
 
@@ -206,24 +258,98 @@ const runTestXCacheEvent = async () => {
   await enterKey();
   console.clear();
   console.log('\n\nxcache.statusAll() =>', xcache.statusAll());
+
+  await sleep(1000);
+  await enterKey('Press Enter to create 3(key)x3(event) for trigger test...');
+  console.clear();
+
+  // trigger event
+  for (let i = 0; i < 3; i++) {
+    key = `trigger-session-${i}`;
+    lifecycleSeconds = 60; // seconds
+
+    xcache.malloc(key, { value: { status: 'waiting-user-action' } });
+
+    for (let j = 0; j < 3; j++) {
+      eventName = `event::${j}-trigger-session-${i}`;
+      xcache.createEvent(key, eventName, lifecycleSeconds, async (cacheEvent) => {
+        console.log(
+          `for(i=${i}, j=${j}) loop => xcache.createEvent(() => {})`,
+          'cacheEvent:',
+          cacheEvent
+        );
+        switch (cacheEvent.eventStatus) {
+          case 'conflict': // the same event name already exists (pending)
+            break;
+          case 'triggered': // triggered by the process to indicate the job is done
+            break;
+          case 'timeout': // the event is timed out
+            break;
+        }
+      });
+    }
+  }
+
+  console.log('\n\nxcache.statusAll() =>', xcache.statusAll());
+  await sleep(1000);
+  await enterKey(`Press Enter to trigger ...`);
+  console.clear();
+
+  // call an event for the each key
+  for (let i = 0; i < 3; i++) {
+    key = `trigger-session-${i}`;
+    eventName = `event::${i}-trigger-session-${i}`;
+    xcache.read(key).value.status = 'triggered';
+    xcache.triggerEvent(key, eventName);
+  }
+
+  await sleep(1000);
+  await enterKey();
+  console.clear();
+  console.log('\n\nxcache.statusAll() =>', xcache.statusAll());
+
+  debugShell({ xcache });
 };
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function enterKey() {
+function enterKey(message = 'Press Enter to continue...') {
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
   });
-
   return new Promise((resolve) => {
-    rl.question('Press Enter to continue...', (input) => {
+    rl.question(message, (input) => {
       rl.close();
       resolve(input); // If you want to get the input, otherwise just resolve()
     });
   });
+}
+
+async function debugShell(object) {
+  let { xcache } = object;
+  let rl = '';
+  do {
+    try {
+      await sleep(1000);
+      rl = await enterKey('Press Enter to continue or type "q" to quit...');
+      if (rl === 'q' || rl === 'Q' || rl === 'quit' || rl === 'Quit') {
+        process.exit(0);
+      } else if (rl === 'debug') {
+        process.debug();
+        break;
+      } else if (rl === '') {
+        console.clear();
+        console.log('\n\nxcache.statusAll() =>', xcache.statusAll());
+      } else {
+        console.log(eval(rl));
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  } while (true);
 }
 
 // override console.log to print objects to the fullest depth
@@ -239,5 +365,17 @@ console.log = myconsole.log;
 console.clear();
 console.group();
 
-//runTestXCacheData();
-runTestXCacheEvent();
+const rl = await enterKey(
+  '1) runTestXCacheData or 2) runTestXCacheEvent or 3) quit? [default: 1] '
+);
+switch (rl) {
+  case '':
+  case '1':
+    await runTestXCacheData();
+    break;
+  case '2':
+    await runTestXCacheEvent();
+    break;
+  case '3':
+    process.exit(0);
+}

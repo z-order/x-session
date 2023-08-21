@@ -15,7 +15,7 @@ type XCacheConfig = {
 
 type XCacheData = {
   key: string;
-  value: any;
+  value: object;
   cacheControl: {
     _refCount: number; // reference count for this item
     _mallocAt: number; // milliseconds, default: Date.now()
@@ -43,6 +43,7 @@ type XCacheEvent = {
   eventHandler?: (cacheEvent: XCacheEvent) => void;
   cacheData: XCacheData;
   eventStatus: XCacheEvnetStatus;
+  getCacheData: () => object;
 };
 
 interface XCacheConfigReloader {
@@ -136,14 +137,14 @@ class XCache extends XCacheConfigurator {
       cacheEventCount: this.getEventCount(),
       status: [
         {
+          description: 'number of items in the cache',
           name: 'count',
           value: this.count(),
-          description: 'number of items in the cache',
         },
         {
+          description: 'number of events in the cache',
           name: 'eventCount',
           value: this.getEventCount(),
-          description: 'number of events in the cache',
         },
       ],
     };
@@ -155,24 +156,24 @@ class XCache extends XCacheConfigurator {
       config: this.getConfig(),
       status: [
         {
+          description: 'number of items in the cache',
           name: 'count',
           value: this.count(),
-          description: 'number of items in the cache',
         },
         {
+          description: 'number of events in the cache',
           name: 'eventCount',
           value: this.getEventCount(),
-          description: 'number of events in the cache',
         },
         {
+          description: 'data in the cache',
           name: 'data',
           value: this._memcache.values(),
-          description: 'data in the cache',
         },
         {
+          description: 'events in the cache',
           name: 'event',
           value: this._eventTimers.values(),
-          description: 'events in the cache',
         },
       ],
     };
@@ -183,7 +184,24 @@ class XCache extends XCacheConfigurator {
   }
 
   // Methods for data management
-  public malloc(key: string, value: any, maxAge?: number): XCache {
+
+  /**
+   * @description Create a new item in the cache
+   * @param {string} key unique key for the item
+   * @param {object} value object to be cached
+   * @param {number} maxAge in seconds, default is 604800 (7 days), 0 for no limit
+   * @returns {XCache} this
+   * @throws {Error} if key already exists
+   * @example
+   * // must use try {...} catch {...} block
+   * const xcache = new XCache();
+   * try {
+   *   xcache.malloc('key', {a: 1, b: 2});
+   * } catch (err) {
+   *   console.error(err);
+   * }
+   */
+  public malloc(key: string, value: object, maxAge?: number): XCache {
     const __FUNCTION__ = 'malloc()';
     if (this._memcache.has(key)) {
       throw new Error(`${this.__CLASSNAME__}::${__FUNCTION__} Key ${key} already exists!`);
@@ -204,7 +222,23 @@ class XCache extends XCacheConfigurator {
     return this;
   }
 
-  public write(key: string, value: any, maxAge?: number): XCache {
+  /**
+   * @description Write a new value to an existing item in the cache
+   * @param {string} key unique key for the item
+   * @param {object} value object to be cached
+   * @param {number} maxAge in seconds, default is 604800 (7 days), 0 for no limit
+   * @returns {XCache} this
+   * @throws {Error} if key does not exists
+   * @example
+   * // must use try {...} catch {...} block
+   * const xcache = new XCache();
+   * try {
+   *   xcache.write('key', {a: 1, b: 2});
+   * } catch (err) {
+   *   console.error(err);
+   * }
+   */
+  public write(key: string, value: object, maxAge?: number): XCache {
     const __FUNCTION__ = 'write()';
     if (!this._memcache.has(key)) {
       throw new Error(`${this.__CLASSNAME__}::${__FUNCTION__} Key ${key} does not exist!`);
@@ -213,7 +247,9 @@ class XCache extends XCacheConfigurator {
     item.value = value;
     item.cacheControl._writeAt = Date.now();
     item.cacheControl._maxAge = maxAge ? maxAge : this.get('maxAge');
-    this._memcache.set(key, item);
+    /* there is noe need to set the item back to the _memcache, cause it is a reference
+     * this._memcache.set(key, item);
+     */
     return this;
   }
 
@@ -223,7 +259,10 @@ class XCache extends XCacheConfigurator {
       return undefined;
     }
     item.cacheControl._readAt = Date.now();
-    this._memcache.set(key, item);
+    /* there is noe need to set the item back to the _memcache, cause it is a reference
+     * this._memcache.set(key, item);
+     * return new Object(item.value); // check between 'return item.value' and 'return new Object(item.value)'
+     */
     return item.value;
   }
 
@@ -231,16 +270,20 @@ class XCache extends XCacheConfigurator {
     return this._memcache.has(key);
   }
 
-  public free(key: string): void {
+  public free(key: string): boolean {
     const item: XCacheData = this._memcache.get(key);
     if (item != undefined && item.cacheControl._refCount > 0) {
       item.cacheControl._refCount--;
       if (item.cacheControl._refCount === 0) {
         this._memcache.delete(key);
       } else {
-        this._memcache.set(key, item);
+        /* there is noe need to set the item back to the _memcache, cause it is a reference
+         * this._memcache.set(key, item);
+         */
       }
+      return true;
     }
+    return false;
   }
 
   /**
@@ -275,7 +318,7 @@ class XCache extends XCacheConfigurator {
     this._memcache.clear();
   }
 
-  public getRefs(key: string): number {
+  public getRefCount(key: string): number {
     const item: XCacheData = this._memcache.get(key);
     if (item != undefined) {
       return item.cacheControl._refCount;
@@ -287,25 +330,30 @@ class XCache extends XCacheConfigurator {
     const item: XCacheData = this._memcache.get(key);
     if (item != undefined) {
       item.cacheControl._refCount++;
-      item.cacheControl._readAt = Date.now();
-      this._memcache.set(key, item);
+      /* item.cacheControl._readAt = Date.now();
+       * there is noe need to set the item back to the _memcache, cause it is a reference
+       * this._memcache.set(key, item);
+       */
       return item;
     }
     return undefined;
   }
 
-  private decRefs(key: string): boolean {
+  private decRefs(key: string): number | undefined {
     const item: XCacheData = this._memcache.get(key);
     if (item != undefined && item.cacheControl._refCount > 0) {
       item.cacheControl._refCount--;
       if (item.cacheControl._refCount === 0) {
-        return this._memcache.delete(key);
+        this._memcache.delete(key);
+        return 0;
       } else {
-        this._memcache.set(key, item);
-        return true;
+        /* there is noe need to set the item back to the _memcache, cause it is a reference
+         * this._memcache.set(key, item);
+         */
+        return item.cacheControl._refCount;
       }
     }
-    return false;
+    return undefined;
   }
 
   private freeGarbage(): void {
@@ -331,12 +379,12 @@ class XCache extends XCacheConfigurator {
     eventName: string
   ): {
     on: (listener: (...args: any[]) => void) => XCache;
-    off: (listener: (...args: any[]) => void) => XCache;
+    off: (listener?: (...args: any[]) => void) => XCache;
     emit: (...args: any[]) => boolean;
   } {
-    const on = this.on.bind(null, this.getEventManagementKey(key, eventName));
-    const off = this.off.bind(null, this.getEventManagementKey(key, eventName));
-    const emit = this.emit.bind(null, this.getEventManagementKey(key, eventName));
+    const on = this.on.bind(this, this.getEventManagementKey(key, eventName));
+    const off = this.off.bind(this, this.getEventManagementKey(key, eventName));
+    const emit = this.emit.bind(this, this.getEventManagementKey(key, eventName));
     return { on, off, emit };
   }
 
@@ -344,11 +392,25 @@ class XCache extends XCacheConfigurator {
     return super.on(event, listener);
   }
 
-  public off(eventName: string | symbol, listener: (...args: any[]) => void): this {
-    return super.off(eventName, listener);
+  public off(eventName: string | symbol, listener?: (...args: any[]) => void): this {
+    if (listener !== null && listener !== undefined) {
+      return super.off(eventName, listener);
+    } else {
+      return super.removeAllListeners(eventName);
+    }
   }
 
   public emit(event: string | symbol, ...args: any[]): boolean {
+    const cacheEvent: XCacheEvent = args.length > 0 ? args[0] : undefined;
+    if (
+      cacheEvent !== null &&
+      cacheEvent !== undefined &&
+      cacheEvent.eventStatus === 'pending' &&
+      typeof cacheEvent.cacheData === 'object' &&
+      typeof cacheEvent.getCacheData === 'function'
+    ) {
+      return this.onTriggerSet(cacheEvent, ...args);
+    }
     return super.emit(event, ...args);
   }
 
@@ -379,6 +441,9 @@ class XCache extends XCacheConfigurator {
       eventHandler: eventHandler,
       cacheData: item,
       eventStatus: 'pending',
+      getCacheData: function () {
+        return cacheEvent.cacheData.value;
+      },
     };
     if (this._eventTimers.has(this.getEventManagementKey(key, eventName))) {
       console.error(
@@ -386,24 +451,23 @@ class XCache extends XCacheConfigurator {
       );
       cacheEvent.eventStatus = 'conflict';
       cacheEvent.eventHandler?.bind(null, cacheEvent)();
+      this.decRefs(key);
       return;
-    } else {
-      item.cacheEvent.set(eventName, cacheEvent);
-      this.write(key, item);
     }
+    /* there is noe need to set the item back to the _memcache, cause it is a reference
+     * this.write(key, item);
+     * However, we need to update the accesss time of the item
+     */
+    item.cacheControl._readAt = Date.now();
+    item.cacheEvent.set(eventName, cacheEvent);
     const timer = setTimeout(this.onTimerSet.bind(this, cacheEvent), lifecycleSeconds * 1000);
     this._eventTimers.set(this.getEventManagementKey(key, eventName), timer);
+    return;
   }
 
   public triggerEvent(key: string, eventName: string): void {
-    const eventTimerKey = this.getEventManagementKey(key, eventName);
-    const timer = this._eventTimers.get(eventTimerKey);
-    if (timer !== undefined) {
-      clearTimeout(timer);
-    }
-    const cacheEvent: XCacheEvent = this._memcache.get(key)?.cacheEvent;
-    cacheEvent.eventStatus = 'triggered';
-    this.onTimerSet(cacheEvent);
+    const cacheEvent: XCacheEvent = this._memcache.get(key)?.cacheEvent.get(eventName);
+    this.onTriggerSet(cacheEvent);
   }
 
   public deleteEvent(key: string, eventName: string): boolean {
@@ -432,7 +496,7 @@ class XCache extends XCacheConfigurator {
     }
     if (cacheData !== undefined && cacheEvent !== undefined) {
       this._memcache.get(key)?.cacheEvent.delete(eventName);
-      return this.decRefs(key);
+      return this.decRefs(key) !== undefined ? true : false;
     }
     return false;
   }
@@ -440,6 +504,13 @@ class XCache extends XCacheConfigurator {
   public checkEvent(key: string, eventName: string): boolean {
     const eventTimerKey = this.getEventManagementKey(key, eventName);
     return this._eventTimers.has(eventTimerKey);
+  }
+
+  public getCacheEvent(key: string, eventName: string): XCacheEvent | undefined {
+    if (key !== null && key !== undefined) {
+      return this._memcache.get(key)?.cacheEvent.get(eventName);
+    }
+    return undefined;
   }
 
   public getEventCount(key?: string): number {
@@ -458,19 +529,40 @@ class XCache extends XCacheConfigurator {
     if (cacheEvent === null || cacheEvent === undefined) {
       return;
     }
-
     const eventTimerKey = this.getEventManagementKey(cacheEvent.key, cacheEvent.eventName);
     const listenerEventName = this.getEventManagementKey(cacheEvent.key, cacheEvent.eventName);
-    cacheEvent.eventStatus = 'timeout';
-
+    if (cacheEvent.eventStatus === 'pending') {
+      cacheEvent.eventStatus = 'timeout';
+    }
     if (this.listenerCount(listenerEventName) > 0) {
-      this.emit(listenerEventName, cacheEvent);
+      super.emit(listenerEventName, cacheEvent);
     }
     cacheEvent.eventHandler?.bind(null, cacheEvent)();
-
     this._eventTimers.delete(eventTimerKey);
     this._memcache.get(cacheEvent.key)?.cacheEvent.delete(cacheEvent.eventName);
     this.decRefs(cacheEvent.key);
+  }
+
+  private onTriggerSet(cacheEvent: XCacheEvent, ...args: any[]): boolean {
+    let emitResult = true;
+    if (cacheEvent === null || cacheEvent === undefined) {
+      return false;
+    }
+    const eventTimerKey = this.getEventManagementKey(cacheEvent.key, cacheEvent.eventName);
+    const listenerEventName = this.getEventManagementKey(cacheEvent.key, cacheEvent.eventName);
+    const timer = this._eventTimers.get(eventTimerKey);
+    if (timer !== undefined) {
+      clearTimeout(timer);
+    }
+    cacheEvent.eventStatus = 'triggered';
+    if (this.listenerCount(listenerEventName) > 0) {
+      emitResult = super.emit(listenerEventName, cacheEvent, ...args);
+    }
+    cacheEvent.eventHandler?.bind(null, cacheEvent)();
+    this._eventTimers.delete(eventTimerKey);
+    this._memcache.get(cacheEvent.key)?.cacheEvent.delete(cacheEvent.eventName);
+    this.decRefs(cacheEvent.key);
+    return emitResult;
   }
 }
 

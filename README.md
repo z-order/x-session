@@ -1,4 +1,4 @@
-# `x-session`
+# `x-session` (Beta)
 
 ## RESTful API Calls - Case by case connection
 
