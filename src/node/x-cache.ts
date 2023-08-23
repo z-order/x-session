@@ -201,7 +201,7 @@ class XCache extends XCacheConfigurator {
    *   console.error(err);
    * }
    */
-  public malloc(key: string, value: object, maxAge?: number): XCache {
+  public malloc(key: string, value: object, maxAge?: number): XCacheData {
     const __FUNCTION__ = 'malloc()';
     if (this._memcache.has(key)) {
       throw new Error(`${this.__CLASSNAME__}::${__FUNCTION__} Key ${key} already exists!`);
@@ -219,7 +219,7 @@ class XCache extends XCacheConfigurator {
       cacheEvent: new Map(),
     };
     this._memcache.set(key, item);
-    return this;
+    return item;
   }
 
   /**
@@ -238,7 +238,7 @@ class XCache extends XCacheConfigurator {
    *   console.error(err);
    * }
    */
-  public write(key: string, value: object, maxAge?: number): XCache {
+  public write(key: string, value: object, maxAge?: number): XCacheData {
     const __FUNCTION__ = 'write()';
     if (!this._memcache.has(key)) {
       throw new Error(`${this.__CLASSNAME__}::${__FUNCTION__} Key ${key} does not exist!`);
@@ -250,7 +250,7 @@ class XCache extends XCacheConfigurator {
     /* there is noe need to set the item back to the _memcache, cause it is a reference
      * this._memcache.set(key, item);
      */
-    return this;
+    return item;
   }
 
   public read(key: string): any | undefined {
