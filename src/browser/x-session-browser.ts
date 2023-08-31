@@ -132,12 +132,12 @@ class XSession extends XSessionPushEvent {
       typeof document !== 'undefined' &&
       typeof document.cookie !== 'undefined'
     ) {
-      return getCookie('x-session-data');
+      return getCookie(cookieName);
     } else {
       if (this._sessionOptionsVolatile?.cookies) {
-        return getCookie('x-session-data', this._sessionOptionsVolatile?.cookies);
+        return getCookie(cookieName, this._sessionOptionsVolatile?.cookies);
       } else if (this._sessionOptions.cookies) {
-        return getCookie('x-session-data', this._sessionOptions.cookies);
+        return getCookie(cookieName, this._sessionOptions.cookies);
       }
       return null;
     }
