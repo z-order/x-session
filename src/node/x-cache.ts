@@ -40,7 +40,7 @@ type XCacheEvent = {
   eventName: string;
   startedAt: number; // milliseconds, default: Date.now()
   lifecycleSeconds: number;
-  eventHandler?: (cacheEvent: XCacheEvent) => void;
+  eventHandler?: (cacheEvent: XCacheEvent, ...args: any[]) => void;
   cacheData: XCacheData;
   eventStatus: XCacheEvnetStatus;
   getCacheData: () => object;
@@ -422,7 +422,7 @@ class XCache extends XCacheConfigurator {
     key: string,
     eventName: string,
     lifecycleSeconds: number,
-    eventHandler?: (cacheEvent: XCacheEvent) => void
+    eventHandler?: (cacheEvent: XCacheEvent, ...args: any[]) => void
   ): void {
     const __FUNCTION__ = 'createEvent()';
 
@@ -450,7 +450,7 @@ class XCache extends XCacheConfigurator {
         `${this.__CLASSNAME__}::${__FUNCTION__} Event with key: ${key} for eventName: ${eventName} already existed(conflict) in the _eventTimers!`
       );
       cacheEvent.eventStatus = 'conflict';
-      cacheEvent.eventHandler?.bind(null, cacheEvent)();
+      cacheEvent.eventHandler?.bind(null, cacheEvent, {})();
       this.decRefs(key);
       return;
     }
@@ -465,9 +465,9 @@ class XCache extends XCacheConfigurator {
     return;
   }
 
-  public triggerEvent(key: string, eventName: string): void {
+  public triggerEvent(key: string, eventName: string, ...args: any[]): void {
     const cacheEvent: XCacheEvent = this._memcache.get(key)?.cacheEvent.get(eventName);
-    this.onTriggerSet(cacheEvent);
+    this.onTriggerSet(cacheEvent, ...args);
   }
 
   public deleteEvent(key: string, eventName: string): boolean {
@@ -537,7 +537,7 @@ class XCache extends XCacheConfigurator {
     if (this.listenerCount(listenerEventName) > 0) {
       super.emit(listenerEventName, cacheEvent);
     }
-    cacheEvent.eventHandler?.bind(null, cacheEvent)();
+    cacheEvent.eventHandler?.bind(null, cacheEvent, {})();
     this._eventTimers.delete(eventTimerKey);
     this._memcache.get(cacheEvent.key)?.cacheEvent.delete(cacheEvent.eventName);
     this.decRefs(cacheEvent.key);
@@ -558,7 +558,7 @@ class XCache extends XCacheConfigurator {
     if (this.listenerCount(listenerEventName) > 0) {
       emitResult = super.emit(listenerEventName, cacheEvent, ...args);
     }
-    cacheEvent.eventHandler?.bind(null, cacheEvent)();
+    cacheEvent.eventHandler?.bind(null, cacheEvent, ...args)();
     this._eventTimers.delete(eventTimerKey);
     this._memcache.get(cacheEvent.key)?.cacheEvent.delete(cacheEvent.eventName);
     this.decRefs(cacheEvent.key);

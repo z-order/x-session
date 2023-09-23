@@ -91,7 +91,7 @@ class XSessionPushEvent extends XSessionEventEmitter implements XSessionClientSe
   private _opened = false;
   private _options: XSessionPushEventOptions;
   private _eventSource: EventSource | null = null;
-  private _reconnectIntervalId: NodeJS.Timer | null = null;
+  private _reconnectIntervalId: NodeJS.Timeout | null = null;
 
   constructor(options: XSessionPushEventOptions) {
     super();

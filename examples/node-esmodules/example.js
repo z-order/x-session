@@ -272,11 +272,13 @@ const runTestXCacheEvent = async () => {
 
     for (let j = 0; j < 3; j++) {
       eventName = `event::${j}-trigger-session-${i}`;
-      xcache.createEvent(key, eventName, lifecycleSeconds, async (cacheEvent) => {
+      xcache.createEvent(key, eventName, lifecycleSeconds, async (cacheEvent, triggeredData) => {
         console.log(
           `for(i=${i}, j=${j}) loop => xcache.createEvent(() => {})`,
           'cacheEvent:',
-          cacheEvent
+          cacheEvent,
+          'triggeredData:',
+          triggeredData
         );
         switch (cacheEvent.eventStatus) {
           case 'conflict': // the same event name already exists (pending)
@@ -300,7 +302,11 @@ const runTestXCacheEvent = async () => {
     key = `trigger-session-${i}`;
     eventName = `event::${i}-trigger-session-${i}`;
     xcache.read(key).value.status = 'triggered';
-    xcache.triggerEvent(key, eventName);
+    xcache.triggerEvent(key, eventName, {
+      triggered: true,
+      triggeredAt: Date.now(),
+      triggeredData: { key, eventName },
+    });
   }
 
   await sleep(1000);
