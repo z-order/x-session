@@ -63,8 +63,8 @@ const DefaultCookieOptions: XSessionCookieOptions = {
 
 // for the SvelteKit event.cookies.get() and event.cookies.set()
 type XSessioinCookiesHandler = {
-  get: (key: string) => string | null;
-  getAll: () => Record<string, string>;
+  get: (key: string) => string | undefined;
+  getAll: () => XSessionCookie[] | undefined;
   set: (key: string, value: string, options?: SetCookieOptions) => void;
   delete: (key: string, options?: DeleteCookieOptions) => void;
   serialize: (name: string, value: string, options?: SerializeOptions) => string;

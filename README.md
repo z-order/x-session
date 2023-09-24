@@ -68,6 +68,82 @@ send() with API Key      <—       API Key check(No)
 Set Cookie from API Server
         │
 Session check(Yes)       —>       API calls
+                                  Push events from API server
+```
+
+SSR on SvelteKit
+
+```ts
+//
+// file: src/routes/+layout.server.ts
+//
+
+import { xsession } from 'x-session';
+
+/** @type {import('./$types').PageServerLoad} */
+export async function load(event: any) {
+  const resp = await xsession.initSvelteSSR({
+    apiKey: 'my-api-key',
+    cookies: event.cookies,
+    clientIPAddress: event.getClientAddress(),
+    url: 'http://localhost:3000/api',
+    msgDebug: true,
+  });
+
+  return { xsession: resp };
+}
+```
+
+CSR on SvelteKit
+
+```ts
+//
+// file: src/lib/xsession.ts
+//
+
+// XSession: create instance here, for the session.start() put inside the onMount(),
+//           and for the session.close() put inside the onDestroy() of the root +layout.svelte.
+//           The session.on() on the root +layout.svelte don't need to call session.off(),
+//           The sesssion.on() can be seated anywhere, but inside $: reactive statement,
+//           and the session.off() must be called inside onDestroy() using the return value of session.on().
+//           This action is to prevent the memory leak.
+//           You can use session.send() to send message to the server, and get the response from the server.
+//           In case of using the session.send() use inside OnMount() or OnDestroy().
+//
+import { XSession } from 'x-session';
+
+// msgDebug: true, you can see all messages in browser console
+export const xsession: XSession = new XSession({
+  url: 'http://localhost:3000/api',
+  msgDebug: true,
+});
+```
+
+---
+
+```ts
+//
+// file: src/routes/+layout.svelte
+//
+<script lang="ts">
+
+export let data: any;
+import { xsession } from "$lib/xsession";
+
+$: xsessionRespFromSSR = data.xsession;
+
+onMount(() => {
+
+  const resp = await xsession.initSvelteCSR(xsessionRespFromSSR);
+  if (!resp) {
+    // The x-session is not started yet, so, you must call initSvelteSSR() method next.
+    // Causes all the 'load' functions to re-run
+    invalidateAll();
+  }
+
+});
+
+</script>
 ```
 
 ## Refs: Project Tree Structure

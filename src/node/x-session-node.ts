@@ -576,6 +576,209 @@ class XSession extends XSessionPushEvent {
       };
     });
   }
+
+  /**
+   * Call this method to initialize the x-session for the server side rendering(SSR) with SvelteKit on load() function that is located in routes/+layout.server.ts file
+   * @param {XSessionOptions} options - The options for the XSession instance
+   * @returns '{ initSvelteSSR: true }' if the x-session is available, otherwise '{ initSvelteSSR: false }'
+   * @description
+   * ```r
+   *
+   * The following is the flow of the session check.
+   *
+   * SSR.                              CSR.
+   * (In the root "routes/" directory)
+   * +layout.server.ts.                +layout.svelte
+   * ------------------------------------------------
+   * Session check(No)        —>       createClientSession
+   * 										  │
+   * send() with API Key      <—       API Key check(No)
+   * 		│
+   * Set Cookie from API Server
+   * 		│
+   * Session check(Yes)       —>       API calls
+   *                                   Push events from API server
+   *
+   * ```
+   *
+   * @example
+   *
+   * ```ts
+   * //
+   * // file: src/routes/+layout.server.ts
+   * //
+   *
+   * import { xsession } from "x-session";
+   *
+   * export async function load(event: any) {
+   *
+   *   const resp = await xsession.initSvelteSSR({
+   *      apiKey: 'my-api-key',
+   *      cookies: event.cookies,
+   *      clientIPAddress: event.getClientAddress(),
+   *      url: 'http://localhost:3000/api',
+   *      msgDebug: true,
+   *   });
+   *
+   *   return ({ xsession: resp });
+   * }
+   * ```
+   *
+   */
+  public async initSvelteSSR(options: XSessionOptions): Promise<object> {
+    const __CLASSNAME__ = this.__CLASSNAME__;
+    const __FUNCTION__ = 'initSvelteSSR()';
+
+    // Check options parameter
+    if (options === null || options === undefined) {
+      // error log
+      console.error(`${__CLASSNAME__}: ${__FUNCTION__} options parameter is null or undefined! 👎`);
+    }
+
+    // Check options.cookies parameter
+    if (options.cookies === null || options.cookies === undefined) {
+      // error log
+      console.error(
+        `${__CLASSNAME__}: ${__FUNCTION__} options.cookies parameter is null or undefined! 👎`
+      );
+    }
+
+    // Check options.cookies.getAll() parameter, if cookies is an object, it is the SvelteKit event.cookies
+    options.cookies = options.cookies as XSessioinCookiesHandler;
+    if (typeof options.cookies !== 'object' || typeof options.cookies.getAll !== 'function') {
+      // error log
+      console.error(
+        `${__CLASSNAME__}: ${__FUNCTION__} options.cookies.getAll() is not a function! 👎`
+      );
+    }
+
+    // Check if the x-session is created in the browser using initSvelteCSR() method
+    if (this.isCreatedXSession(options.cookies.getAll())) {
+      //
+      // Load data from the API server
+      //
+      let respResources = {};
+      const msgType = 'api-{action:authorization}-{crud:create}';
+      const msgData = { languageCode: 'en-us' };
+      await this.config({
+        // The API key is to be set in the SSR only, and the browser doesn't need to set.
+        // The browser automatically sends the key to the server when this message is sent and received normally.
+        apiKey: options.apiKey, // API key is set in SSR only for the secure reason, after then, the CSR can use APIs without API key.
+        cookies: options.cookies,
+        clientIPAddress: options.clientIPAddress,
+        url: options.url,
+        msgDebug: options.msgDebug,
+      })
+        .send(msgType, msgData)
+        .then((res: any) => {
+          options.msgDebug &&
+            console.debug(
+              `${__CLASSNAME__}: ${__FUNCTION__} got the response from the API server => `,
+              res
+            );
+          respResources = res.msgData.dataResp;
+        })
+        .catch((err: any) => {
+          // error log
+          console.error(`${__CLASSNAME__}: ${__FUNCTION__} error catched! 👎 error msg:`, err);
+        });
+
+      // This is a flag to indicate that the page can call xsession.start() for the push events from the API server and can call the APIs.
+      return { initSvelteSSR: true };
+    }
+    // This is a flag to indicate that the page can not call the APIs.
+    // So, the page must create a new x-session using xsession.checkXSession().isDisabled().createXSession(); on onMount().
+    // And then, the page should reload itself using invalidateAll(). After reloading, this +layout.server.ts will be called again,
+    // after then, the page can call xsession.start() for the push events from the API server and can call the APIs.
+    return { initSvelteSSR: false };
+  }
+
+  /**
+   * Call this method to initialize the x-session for the client side rendering(CSR) with SvelteKit on onMount() function that is located in routes/+layout.svelte file
+   * @param respFromSSR - The response from the initSvelteSSR() method which is called in the server side rendering(SSR) with SvelteKit on load() function that is located in routes/+layout.server.ts file
+   * @returns {boolean} - true if the x-session is started, otherwise false that means you must call initSvelteSSR() method next.
+   *
+   * @description
+   * ```r
+   *
+   * The following is the flow of the session check.
+   *
+   * SSR.                              CSR.
+   * (In the root "routes/" directory)
+   * +layout.server.ts.                +layout.svelte
+   * ------------------------------------------------
+   * Session check(No)        —>       createClientSession
+   * 										  │
+   * send() with API Key      <—       API Key check(No)
+   * 		│
+   * Set Cookie from API Server
+   * 		│
+   * Session check(Yes)       —>       API calls
+   *                                   Push events from API server
+   *
+   * ```
+   *
+   * @example
+   *
+   * ```ts
+   * //
+   * // file: src/lib/xsession.ts
+   * //
+   *
+   * // XSession: create instance here, for the session.start() put inside the onMount(),
+   * //           and for the session.close() put inside the onDestroy() of the root +layout.svelte.
+   * //           The session.on() on the root +layout.svelte don't need to call session.off(),
+   * //           The sesssion.on() can be seated anywhere, but inside $: reactive statement,
+   * //           and the session.off() must be called inside onDestroy() using the return value of session.on().
+   * //           This action is to prevent the memory leak.
+   * //           You can use session.send() to send message to the server, and get the response from the server.
+   * //           In case of using the session.send() use inside OnMount() or OnDestroy().
+   * //
+   * import { XSession } from "x-session";
+   *
+   * // msgDebug: true, you can see all messages in browser console
+   * export const xsession: XSession = new XSession({
+   * 	url: 'http://localhost:3000/api',
+   * 	msgDebug: true,
+   * });
+   * ```
+   *
+   * ----
+   *
+   * ```ts
+   * //
+   * // file: src/routes/+layout.svelte
+   * //
+   * <script lang="ts">
+   * export let data: any;
+   * import { xsession } from "$lib/xsession";
+   *
+   * $: xsessionRespFromSSR = data.xsession;
+   *
+   * onMount(() => {
+   *
+   *   const resp = await xsession.initSvelteCSR(xsessionRespFromSSR);
+   *   if (!resp) {
+   *     // The x-session is not started yet, so, you must call initSvelteSSR() method next.
+   *     // Causes all the 'load' functions to re-run
+   *     invalidateAll();
+   *   }
+   *
+   * });
+   *
+   * </script>
+   * ```
+   */
+  public async initSvelteCSR(respFromSSR: { initSvelteSSR: boolean }): Promise<boolean> {
+    const __CLASSNAME__ = this.__CLASSNAME__;
+    const __FUNCTION__ = 'initSvelteCSR()';
+
+    // This method can not be called in node.js
+    console.error(
+      `${__CLASSNAME__}: ${__FUNCTION__} This method can not be called in node.js! 👎 You should call in onMount() function of the routes/+layout.svelte file or in the script of the browser.`
+    );
+    return false;
+  }
 }
 
 export type {
@@ -586,43 +789,3 @@ export type {
   XSessionMessage,
 };
 export default XSession;
-
-/*
-//
-//
-//
-//
-// Check x-session availability
-// ...
-// Below is an example of how to use cookies to control with e-session
-const browserInfo = cookies.get('browserInfo');
-console.debug('browserInfo:', browserInfo);
-// If x-session is available, then call the API endpoint to get the user session data
-if (browserInfo) {
-  // Do something here
-  // ...
-  let userSessionData = undefined; // Get the user session data from the API endpoint
-  const sessionid = cookies.get('x-session-id');
-  if (sessionid) {
-    // fetch data from an API
-    const res = await fetch('/api/auth', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-session-id': sessionid,
-      },
-    });
-    if (res.status === 200) {
-      userSessionData = await res.json();
-    }
-  }
-  return {
-    xsession: true, // This is a flag to indicate that x-session is available
-    userSessionData: userSessionData,
-  };
-} else {
-  // If x-session is not available, then return to the +layout.svelte page to set up x-session from the client side
-  return { xsession: false };
-}
-
-*/
