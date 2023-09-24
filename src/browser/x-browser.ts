@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-nocheck
 
+import { type } from 'os';
+
 /**
  * @param domain The domain for the cookie to be valid for.
  * @param path The path for the cookie to be valid for.
@@ -58,6 +60,35 @@ const DefaultCookieOptions: XSessionCookieOptions = {
   secure: false,
   maxAge: 3600,
 };
+
+// for the SvelteKit event.cookies.get() and event.cookies.set()
+type XSessioinCookiesHandler = {
+  get: (key: string) => string | null;
+  getAll: () => Record<string, string>;
+  set: (key: string, value: string, options?: SetCookieOptions) => void;
+  delete: (key: string, options?: DeleteCookieOptions) => void;
+  serialize: (name: string, value: string, options?: SerializeOptions) => string;
+};
+
+interface SetCookieOptions {
+  expires?: Date;
+  path?: string;
+  domain?: string;
+  secure?: boolean;
+  httpOnly?: boolean;
+  maxAge?: number;
+  sameSite?: 'Strict' | 'Lax' | 'None';
+}
+
+interface DeleteCookieOptions {
+  path?: string;
+  domain?: string;
+}
+
+interface SerializeOptions {
+  encode?: (value: string) => string;
+  // Add any other options if they exist
+}
 
 /**
  * Get cookie options with the specified options.
@@ -150,7 +181,19 @@ const getCookieString = (
   return cookieString;
 };
 
-const getCookie = (cookieName: string, cookies?: XSessionCookie[]): string | null => {
+const getCookie = (
+  cookieName: string,
+  _cookies?: XSessionCookie[] | XSessioinCookiesHandler
+): string | null => {
+  //
+  let cookies = _cookies as XSessionCookie[];
+
+  // if cookies is an object, it is the SvelteKit event.cookies
+  _cookies = _cookies as XSessioinCookiesHandler;
+  if (_cookies && typeof _cookies === 'object' && typeof _cookies.getAll === 'function') {
+    cookies = _cookies.getAll() as any;
+  }
+
   if (cookies && cookies.length > 0) {
     for (const cookie of cookies) {
       if (cookie.name === cookieName) {
@@ -375,5 +418,6 @@ function setMetaTags() {
 }
 
 export type { XSessionCookieOptions, XSessionCookie, XSessionNavInfo };
+export type { XSessioinCookiesHandler, SetCookieOptions, DeleteCookieOptions, SerializeOptions };
 export { getCookieOptions, getCookieString, getCookie };
 export { getNavigationInfo, getDomainFromUrl };

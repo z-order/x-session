@@ -1,6 +1,11 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 
-import type { XSessionCookieOptions, XSessionCookie, XSessionNavInfo } from './x-browser.js';
+import type {
+  XSessionCookieOptions,
+  XSessionCookie,
+  XSessionNavInfo,
+  XSessioinCookiesHandler,
+} from './x-browser.js';
 import { getCookieOptions, getCookieString, getCookie } from './x-browser.js';
 import { getNavigationInfo, getDomainFromUrl } from './x-browser.js';
 import XSessionPushEvent, { XSessionPushEventOptions } from './x-session-sse.js';
@@ -10,25 +15,29 @@ import { KJUR, KEYUTIL } from 'jsrsasign'; // for the browser
 
 // Dynamic imports are only supported when the '--module' flag is set to
 // - 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
-let _randomUUID: () => string;
-// Detect if we're in Node.js
-if (typeof window === null || typeof window === 'undefined') {
-  // We're in Node.js
-  import('node:crypto').then((crypto) => {
-    _randomUUID = crypto.randomUUID;
-  });
-} else {
-  // We're in the browser
-  import('uuid').then((uuid) => {
-    _randomUUID = uuid.v4;
-  });
-}
+//
+// let _randomUUID: () => string;
+// // Detect if we're in Node.js
+// if (typeof window === null || typeof window === 'undefined') {
+//   // We're in Node.js
+//   import('node:crypto').then((crypto) => {
+//     _randomUUID = crypto.randomUUID;
+//   });
+// } else {
+//   // We're in the browser
+//   import('uuid').then((uuid) => {
+//     _randomUUID = uuid.v4;
+//   });
+// }
 //
 // Above code is not working in the browser:
 // 1) [HMR][Svelte] Unrecoverable HMR error in <Root>: next update will trigger a full reload
 // 2) x-session-browser.ts:101 Uncaught (in promise) TypeError: randomUUID is not a function
 //    at XSession.createXSession (x-session-browser.ts:101:29)
 //    at +layout.svelte:45:12
+// 3) [plugin:vite:resolve] Module "node:crypto" has been externalized for browser compatibility,
+//    imported by "/.../node_modules/.pnpm/x-session@0.x.x/node_modules/x-session/dist/browser/mjs/x-session-browser.js".
+//    See http://vitejs.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
 //
 // or
 //
@@ -49,7 +58,7 @@ interface XSessionOptions extends XSessionPushEventOptions {
   clientIPAddress?: string;
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE' | 'OPTIONS';
   headers?: XSessionHttpHeaders;
-  cookies?: XSessionCookie[];
+  cookies?: XSessionCookie[] | XSessioinCookiesHandler;
 }
 
 type XSessionCheckStatus =
@@ -210,6 +219,57 @@ class XSession extends XSessionPushEvent {
           })
     );
     return this;
+  }
+
+  public isCreatedXSession(cookies?: XSessionCookie[]): boolean {
+    let cookieData = null;
+    if (this.isBrowser()) {
+      // CSR(Client side render) check, using document.cookie
+      cookieData = getCookie('x-session-data');
+    } else {
+      // SSR(Sever side render) check, using 'cookies' parameter
+      cookieData = getCookie('x-session-data', cookies || []);
+    }
+    if (
+      cookieData === null ||
+      cookieData === undefined ||
+      cookieData === '' ||
+      cookieData.length < 256
+    ) {
+      return false;
+    }
+    const xSessionData = this.getSessionData(cookieData) as XSessionCookieData;
+    if (xSessionData === null || xSessionData === undefined) {
+      return false;
+    }
+    const clientSessionId = xSessionData.clientSessionId || null;
+    if (clientSessionId === null) {
+      return false;
+    }
+    const uuidRegex =
+      /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
+    return uuidRegex.test(clientSessionId);
+  }
+
+  public isAvailableAPIKey(cookies?: XSessionCookie[]): boolean {
+    let cookieData = null;
+    if (this.isBrowser()) {
+      // CSR(Client side render) check, using document.cookie
+      cookieData = getCookie('x-session-key');
+    } else {
+      // SSR(Sever side render) check, using 'cookies' parameter
+      cookieData = getCookie('x-session-key', cookies || []);
+    }
+    if (
+      cookieData === null ||
+      cookieData === undefined ||
+      cookieData === '' ||
+      cookieData.length < 36 ||
+      cookieData.length > 256 // encrypted key length
+    ) {
+      return false;
+    }
+    return true;
   }
 
   public get getClientSessionId(): string | undefined {
@@ -432,15 +492,19 @@ class XSession extends XSessionPushEvent {
       if (!this.isSameOrigin(url) || !this.isBrowser()) {
         let xsessionCookie = null;
         const xsessionData = this.getCookie('x-session-data');
+        const xsessionKey = this.getCookie('x-session-key');
         const xsessionToken = this.getCookie('x-session-token');
         const xsessionId = this.getCookie('x-session-id');
         if (xsessionData && xsessionData.length > 0) {
           xsessionCookie = `x-session-data=${xsessionData}`;
-          if (xsessionToken && xsessionToken.length > 0) {
-            xsessionCookie += `; x-session-token=${xsessionToken}`;
+          if (xsessionKey && xsessionKey.length > 0) {
+            xsessionCookie += `; x-session-key=${xsessionKey}`;
           }
           if (xsessionId && xsessionId.length > 0) {
             xsessionCookie += `; x-session-id=${xsessionId}`;
+          }
+          if (xsessionToken && xsessionToken.length > 0) {
+            xsessionCookie += `; x-session-token=${xsessionToken}`;
           }
           headers?.append('x-session-cookie', xsessionCookie);
         }
@@ -510,7 +574,13 @@ class XSession extends XSessionPushEvent {
   }
 }
 
-export type { XSessionOptions, XSessionCookieOptions, XSessionMessage };
+export type {
+  XSessionOptions,
+  XSessionCookieOptions,
+  XSessionCookie,
+  XSessionCookieData,
+  XSessionMessage,
+};
 export default XSession;
 
 /*
