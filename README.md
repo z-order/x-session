@@ -86,7 +86,7 @@ export async function load(event: any) {
     apiKey: 'my-api-key',
     cookies: event.cookies,
     clientIPAddress: event.getClientAddress(),
-    url: 'http://localhost:3000/api',
+    url: 'http://api.mydomain.com:3000/api',
     msgDebug: true,
   });
 
@@ -114,7 +114,7 @@ import { XSession } from 'x-session';
 
 // msgDebug: true, you can see all messages in browser console
 export const xsession: XSession = new XSession({
-  url: 'http://localhost:3000/api',
+  url: 'http://api.mydomain.com:3000/api',
   msgDebug: true,
 });
 ```
@@ -141,6 +141,121 @@ onMount(() => {
     invalidateAll();
   }
 
+});
+
+</script>
+```
+
+---
+
+CSR on SvelteKit for the event push actions from the API server events
+
+```ts
+//
+// file: src/routes/+layout.svelte
+//
+<script lang="ts">
+
+export let data: any;
+import { xsession } from "$lib/xsession";
+import { page } from "$app/stores";
+
+$: console.log("/+layout.svelte", $page.route.id, "data.xsession:", data.xsession);
+$: xsessionRespFromSSR = data.xsession;
+$: {
+
+  // This event is triggered when the x-session is connected to the API server
+  xsession.on("open", (ev: any) => {
+    console.log("XSession: open", ev);
+    // do your actions here
+    // ...
+  });
+
+  // This event is triggered when the x-session is disconnected from the API server
+  xsession.on("close", (ev: any) => {
+    console.log("XSession: close", ev);
+    // do your actions here
+    // ...
+  });
+
+  // This event is triggered when the error occured between client and API server
+  xsession.on("error", (ev: any) => {
+    console.log("XSession: error", ev);
+  });
+
+  // This 'message' receives all the event name of messages from the server
+  // You can check the event name using msg.type property.
+  xsession.on("message", (msg: { type: any; data: any }) => {
+    console.log(`on:message(${msg.type})`, "msg.data => ", msg.data);
+    // do your actions here
+    // ...
+  });
+
+  // This is the typical shape of getting the event push message from the API server
+  // In this case, the msg.type is 'helloWorld' and the data will be filled up in msg.data
+  xsession.on("helloWorld", (msg: { type: any; data: any }) => {
+    console.log(`on:${msg.type}`, "msg.data => ", msg.data);
+    // do your actions here
+    // ...
+  });
+
+  // Yeah, like this, you can use as you want.
+  xsession.on("realtimeStreamingData", (msg: { type: any; data: any }) => {
+    console.log(`on:${msg.type}`, "msg.data => ", msg.data);
+    // do your actions here
+    // ...
+  });
+
+  // ... another event listeners
+
+  // API call sample in svelte (browsers)
+  function callAPI() {
+    const msgType = "HelloBuddy";
+    const msgData = { name: 'Uncle Bob', region: 'North Amarica', city: 'New York'}
+
+    xsession
+      .config({ url: 'http://api.mydomain.com:3000/api' }) // You can ignore this line, because you already defined 'url' propery in src/lib/xsession.ts
+      .send(msgType, msgData)
+      .then((res: any) => {
+
+        const dataFromServer = res.msgData.dataResp;
+
+        // do something here with your data from the API server
+        // ...
+
+      })
+      .catch((error: any) => {
+        console.error("error", error);
+      });
+  }
+
+  // And so many functions and fetures, I will update frequently when I have time.
+  //
+  // 1) The browser only samples.
+  // 2) SvelteKit SSR + CSR samples.
+  // 3) x-session API server modules.
+  // 4) x-session API server samples.
+  // 5) so on.
+  //
+  // Thanks @everybody.
+}
+
+onMount(() => {
+
+  const resp = await xsession.initSvelteCSR(xsessionRespFromSSR);
+  if (!resp) {
+    // The x-session is not started yet, so, you must call initSvelteSSR() method next.
+    // Causes all the 'load' functions to re-run
+    invalidateAll();
+  }
+
+});
+
+onDestroy(() => {
+  // Perhaps, it doesn't need to close the x-session because the memory leak is not found as of now.
+  // I think I updated all the package at the latest, after then there is no memory leak,
+  // and the page loading speed is remarkably faster than before. Of course, I updated a lot.
+  //xsession.close();
 });
 
 </script>

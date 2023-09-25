@@ -68,6 +68,7 @@ type XSessioinCookiesHandler = {
   set: (key: string, value: string, options?: SetCookieOptions) => void;
   delete: (key: string, options?: DeleteCookieOptions) => void;
   serialize: (name: string, value: string, options?: SerializeOptions) => string;
+  debugCookiesHanlder?: boolean;
 };
 
 interface SetCookieOptions {

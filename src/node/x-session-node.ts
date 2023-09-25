@@ -9,6 +9,7 @@ import type {
 import { getCookieOptions, getCookieString, getCookie } from './x-browser.js';
 import { getNavigationInfo, getDomainFromUrl } from './x-browser.js';
 import XSessionPushEvent, { XSessionPushEventOptions } from './x-session-sse.js';
+import util from 'util';
 
 // import * as jwt from 'jsonwebtoken'; // for the node only
 import { KJUR, KEYUTIL } from 'jsrsasign'; // for the browser
@@ -519,6 +520,8 @@ class XSession extends XSessionPushEvent {
         `${this.__CLASSNAME__}::${__FUNCTION__} Error on appending http headers! 👎 error msg: ${error}`
       );
     }
+    // Before reset the volatile options, save the cookies for the SvelteKit event.cookies to send to the browser
+    const cookiesObjectInSvelteKit = this._sessionOptionsVolatile?.cookies || null;
     // After set the headers and before returning, reset the volatile options
     this._sessionOptionsVolatile = null;
     return await new Promise(async (resolve, reject): Promise<XSessionMessage> => {
@@ -542,6 +545,19 @@ class XSession extends XSessionPushEvent {
             if (jsonData.msgData === null || jsonData.msgData === undefined) {
               throw new Error(
                 `${__CLASSNAME__}::${__FUNCTION__} Invalid response from the server. Can not find 'msgData' property in the response.`
+              );
+            }
+            // SvleteKit event.cookies to send cookies from the server to the browser
+            if (
+              cookiesObjectInSvelteKit !== null &&
+              cookiesObjectInSvelteKit !== undefined &&
+              typeof cookiesObjectInSvelteKit === 'object' &&
+              // @ts-ignore
+              typeof cookiesObjectInSvelteKit.set === 'function'
+            ) {
+              this.setCookiesInSvelteSSR(
+                cookiesObjectInSvelteKit as XSessioinCookiesHandler,
+                response
               );
             }
             resolve(jsonData as XSessionMessage);
@@ -657,6 +673,7 @@ class XSession extends XSessionPushEvent {
       //
       // Load data from the API server
       //
+      this._sessionOptions = options; // Save the options for the this.config().send() method use SvleteKit event.cookies
       let respResources = {};
       const msgType = 'api-{action:authorization}-{crud:create}';
       const msgData = { languageCode: 'en-us' };
@@ -778,6 +795,96 @@ class XSession extends XSessionPushEvent {
       `${__CLASSNAME__}: ${__FUNCTION__} This method can not be called in node.js! 👎 You should call in onMount() function of the routes/+layout.svelte file or in the script of the browser.`
     );
     return false;
+  }
+
+  private setCookiesInSvelteSSR(
+    cookiesObjectInSvelteKit: XSessioinCookiesHandler,
+    responseFromNodeFetch: Response
+  ): void {
+    const __CLASSNAME__ = this.__CLASSNAME__;
+    const __FUNCTION__ = 'setCookiesInSvelteSSR()';
+
+    // If you want to see the debug log for this function, set the debugCookiesHanlder to true, as like the following.
+    //
+    // file: SvelteKit src/routes/+layout.server.ts
+    //
+    // import { xsession } from "x-session";
+    //
+    // export async function load(event: any) {
+    //
+    //   event.cookies.debugCookiesHanlder = true;
+    //
+    //   xsession.initSvelteSSR({
+    //     ...
+    //     cookies: event.cookies,
+    //     ...
+    //   })
+    // }
+
+    cookiesObjectInSvelteKit.debugCookiesHanlder &&
+      console.debug(
+        `${__CLASSNAME__}: node_fetch.then((response) => {}), response =>`,
+        util.inspect(responseFromNodeFetch)
+      );
+
+    cookiesObjectInSvelteKit.debugCookiesHanlder &&
+      console.debug(
+        `${__CLASSNAME__}: node_fetch.then((response) => {}), response.headers =>`,
+        util.inspect(responseFromNodeFetch.headers)
+      );
+
+    // @ts-ignore
+    const getAll = responseFromNodeFetch.headers.getAll;
+    if (getAll === null || getAll === undefined || typeof getAll !== 'function') {
+      if (cookiesObjectInSvelteKit.debugCookiesHanlder) {
+        // error log
+        console.error(
+          `${__CLASSNAME__}: ${__FUNCTION__} response doesn't have getAll() function within the node_fetch.then((response) => {}) !!! 👎`
+        );
+      }
+      return;
+    }
+
+    //
+    // The following is the example of the responseFromNodeFetch.headers.getAll() result
+    //
+    // const cookiesFromServer = [
+    //   "x-session-key1=76d7:eyJhbGciOiJIUzI1NiJ90NTkyMzNlYWUtNzZkNy00ZTk0LTg1MmEtYmNlYTgyZmU0Zjg00kZCWny_b6jKRY2-iVUeRtKXX39hnsm6nLyPOiHMi_aI; Path=/test; HttpOnly; SameSite=Strict",
+    //   "x-session-key2=76d7:eyJhbGciOiJIUzI1NiJ90NTkyMzNlYWUtNzZkNy00ZTk0LTg1MmEtYmNlYTgyZmU0Zjg00kZCWny_b6jKRY2-iVUeRtKXX39hnsm6nLyPOiHMi_aI; Path=/test; HttpOnly; SameSite=Strict"
+    // ];
+    //
+
+    // @ts-ignore
+    const cookiesFromServer = responseFromNodeFetch.headers.getAll('set-cookie');
+    cookiesFromServer.forEach((cookie: string) => {
+      let name = '';
+      let value = '';
+      let options: { [key: string]: string } = {};
+      cookie.split('; ').forEach((items: string, index: number) => {
+        const [_key, _value] = items.split('=');
+        if (index === 0) {
+          name = _key;
+          value = _value;
+        } else {
+          options[_key] = _value;
+        }
+      });
+      // encodeURIComponent() is not required for the cookie value. But the decodeURIComponent() is required in the server side.
+      cookiesObjectInSvelteKit.debugCookiesHanlder &&
+        console.debug(
+          `${__CLASSNAME__}: ${__FUNCTION__} set cookie using load(event), event.cookies.set() function =>`,
+          util.inspect(cookiesObjectInSvelteKit.set),
+          cookiesObjectInSvelteKit.set.toString()
+        );
+      cookiesObjectInSvelteKit.debugCookiesHanlder &&
+        console.debug(
+          `${__CLASSNAME__}: ${__FUNCTION__} set cookie (The options will be not set by the SvelteKit default options, it's bugs of SvelteKit v4.2.1) =>`,
+          name,
+          value,
+          options
+        );
+      cookiesObjectInSvelteKit.set(name, value, options);
+    });
   }
 }
 
