@@ -21,5 +21,13 @@ class XSessionWrapper extends XSession {
   public async send(msgTypeOrData: string | any, msgData?: any): Promise<XSessionMessage> {
     return await super.send(msgTypeOrData, msgData);
   }
+
+  public static async initSvelteSSR(options: XSessionOptions): Promise<object> {
+    return await new XSessionWrapper(options).initSvelteSSR(options);
+  }
+
+  public static async initSvelteCSR(respFromSSR: { initSvelteSSR: boolean }): Promise<boolean> {
+    return await new XSessionWrapper({ url: 'localhost' }).initSvelteCSR(respFromSSR);
+  }
 }
 export { XSessionWrapper };
