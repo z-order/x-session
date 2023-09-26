@@ -125,7 +125,13 @@ class XSessionPushEvent extends XSessionEventEmitter implements XSessionClientSe
     // This is crucial when making cross - origin requests with EventSource if you rely on cookies or HTTP authentication.
     // if 'this._options.url' is a cross-origin URL (i.e., a different domain or sub-domain from the origin the script is running on),
     // and you want to send credentials like cookies with the request, you'd set withCredentials to true.
-    this._eventSource = new EventSource(this._options.url, { withCredentials: true });
+    let eventSourceUrl = this._options.url;
+    // Delete the last '/' character in the url if exists
+    if (eventSourceUrl.endsWith('/')) {
+      eventSourceUrl = eventSourceUrl.slice(0, -1);
+    }
+    eventSourceUrl += `?x=${this.getClientSessionId}`;
+    this._eventSource = new EventSource(eventSourceUrl, { withCredentials: true });
     this._eventSource.onopen = this.onopen;
     this._eventSource.onerror = this.onerror;
     this._eventSource.onmessage = this.onmessage;

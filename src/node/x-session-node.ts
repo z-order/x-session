@@ -885,13 +885,6 @@ class XSession extends XSessionPushEvent {
           util.inspect(cookiesObjectInSvelteKit.set),
           cookiesObjectInSvelteKit.set.toString()
         );
-      cookiesObjectInSvelteKit.debugCookiesHanlder &&
-        console.debug(
-          `${__CLASSNAME__}: ${__FUNCTION__} set cookie (The options will be not set by the SvelteKit default options, it's bugs of SvelteKit v4.2.1) =>`,
-          name,
-          value,
-          options
-        );
       // here's sample for the usage of event.cookies.set(): refs: https://learn.svelte.dev/tutorial/cookies
       // Calling cookies.set(name, ...) causes a Set-Cookie header to be written, but it also updates the internal map of cookies,
       // meaning any subsequent calls to cookies.get(name) during the same request will return the updated value.Under the hood,
@@ -919,12 +912,28 @@ class XSession extends XSessionPushEvent {
       //
       // So, it needs to set the options manually, as like the above using the cookies header from the server.
       options['Domain'] ? (options['domain'] = options['Domain']) : undefined;
+      options['Domain'] && delete options['Domain'];
       options['Path'] ? (options['path'] = options['Path']) : undefined;
+      options['Path'] && delete options['Path'];
       options['Expires'] ? (options['expires'] = options['Expires']) : undefined;
+      options['Expires'] && delete options['Expires'];
       options['Max-Age'] ? (options['maxAge'] = options['Max-Age']) : undefined;
+      options['Max-Age'] && delete options['Max-Age'];
       options['SameSite'] ? (options['sameSite'] = options['SameSite']) : undefined;
+      options['SameSite'] && delete options['SameSite'];
       options['Secure'] ? (options['secure'] = true) : (options['secure'] = false);
+      options['Secure'] && delete options['Secure'];
       options['HttpOnly'] ? (options['httpOnly'] = true) : (options['httpOnly'] = false);
+      options['HttpOnly'] && delete options['HttpOnly'];
+
+      cookiesObjectInSvelteKit.debugCookiesHanlder &&
+        console.debug(
+          `${__CLASSNAME__}: ${__FUNCTION__} set cookie (The options will be set by the SvelteKit default options if you don't set) =>`,
+          { httpOnly: true, secure: true, sameSite: 'lax' },
+          'call event.cookies.set(name, value, options) to set cookie data from the server =>',
+          { name, value, options }
+        );
+
       cookiesObjectInSvelteKit.set(name, value, options);
 
       /**
