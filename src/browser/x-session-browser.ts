@@ -708,9 +708,19 @@ class XSession extends XSessionPushEvent {
    * </script>
    * ```
    */
-  public async initSvelteCSR(respFromSSR: { initSvelteSSR: boolean }): Promise<boolean> {
+  public async initSvelteCSR(respFromSSR: {
+    initSvelteSSR: boolean;
+    payload?: string;
+  }): Promise<boolean> {
     const __CLASSNAME__ = this.__CLASSNAME__;
     const __FUNCTION__ = 'initSvelteCSR()';
+
+    if (!this.isBrowser()) {
+      console.log(
+        `${__CLASSNAME__}: ${__FUNCTION__} function cannot be called not in browsers! 👎`
+      );
+      return false;
+    }
 
     if (this._sessionOptions.msgDebug) {
       console.log(
@@ -744,6 +754,44 @@ class XSession extends XSessionPushEvent {
     // The x-session is available, so you can call the APIs and get the push events from the server
     return true;
   }
+
+  /*
+  private setCookiesInSvelteCSR(respFromSSR: { initSvelteSSR: boolean; payload: string }): void {
+    const __CLASSNAME__ = this.__CLASSNAME__;
+
+    const __FUNCTION__ = 'setCookiesInSvelteCSR()';
+
+    if (!this.isBrowser()) {
+      console.log(
+        `${__CLASSNAME__}: ${__FUNCTION__} function cannot be called not in browsers! 👎`
+      );
+      return;
+    }
+
+    const domainOrigin = getDomainFromUrl(this._browserInfo.windowLocation?.origin || 'localhost');
+    document.cookie = getCookieString(
+      { name: 'x-session-data', value: this.getJsonWebToken(cookieValue) },
+      this._cookieOptions
+        ? getCookieOptions({
+            domain: this._cookieOptions.domain || domainOrigin,
+            path: this._cookieOptions.path || '/',
+            expires: this._cookieOptions.expires || undefined,
+            httpOnly: this._cookieOptions.httpOnly || false,
+            sameSite: this._cookieOptions.sameSite || 'Strict',
+            secure: this._cookieOptions.secure || false,
+            maxAge: this._cookieOptions.maxAge || undefined,
+          })
+        : getCookieOptions({
+            domain: domainOrigin,
+            path: '/',
+            sameSite: 'Strict',
+            httpOnly: false,
+            secure: false,
+          })
+    );
+    return;
+  }
+  */
 }
 
 export type {
@@ -754,43 +802,3 @@ export type {
   XSessionMessage,
 };
 export default XSession;
-
-/*
-//
-//
-//
-//
-// Check x-session availability
-// ...
-// Below is an example of how to use cookies to control with e-session
-const browserInfo = cookies.get('browserInfo');
-console.debug('browserInfo:', browserInfo);
-// If x-session is available, then call the API endpoint to get the user session data
-if (browserInfo) {
-  // Do something here
-  // ...
-  let userSessionData = undefined; // Get the user session data from the API endpoint
-  const sessionid = cookies.get('x-session-id');
-  if (sessionid) {
-    // fetch data from an API
-    const res = await fetch('/api/auth', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-session-id': sessionid,
-      },
-    });
-    if (res.status === 200) {
-      userSessionData = await res.json();
-    }
-  }
-  return {
-    xsession: true, // This is a flag to indicate that x-session is available
-    userSessionData: userSessionData,
-  };
-} else {
-  // If x-session is not available, then return to the +layout.svelte page to set up x-session from the client side
-  return { xsession: false };
-}
-
-*/

@@ -91,6 +91,7 @@ class XSession extends XSessionPushEvent {
   private _sessionOptions: XSessionOptions;
   private _sessionOptionsVolatile: XSessionOptions | null = null;
   private _cookieOptions: XSessionCookieOptions | null = null;
+  private _cookiesFromServer: XSessionCookie[] | null = null;
   // @ts-ignore
   private _browserInfo: XSessionNavInfo = {};
 
@@ -645,6 +646,11 @@ class XSession extends XSessionPushEvent {
     const __CLASSNAME__ = this.__CLASSNAME__;
     const __FUNCTION__ = 'initSvelteSSR()';
 
+    if (this.isBrowser()) {
+      console.log(`${__CLASSNAME__}: ${__FUNCTION__} function cannot be called in browsers! 👎`);
+      return {};
+    }
+
     // Check options parameter
     if (options === null || options === undefined) {
       // error log
@@ -786,7 +792,10 @@ class XSession extends XSessionPushEvent {
    * </script>
    * ```
    */
-  public async initSvelteCSR(respFromSSR: { initSvelteSSR: boolean }): Promise<boolean> {
+  public async initSvelteCSR(respFromSSR: {
+    initSvelteSSR: boolean;
+    payload?: string;
+  }): Promise<boolean> {
     const __CLASSNAME__ = this.__CLASSNAME__;
     const __FUNCTION__ = 'initSvelteCSR()';
 
@@ -849,8 +858,8 @@ class XSession extends XSessionPushEvent {
     // The following is the example of the responseFromNodeFetch.headers.getAll() result
     //
     // const cookiesFromServer = [
-    //   "x-session-key1=76d7:eyJhbGciOiJIUzI1NiJ90NTkyMzNlYWUtNzZkNy00ZTk0LTg1MmEtYmNlYTgyZmU0Zjg00kZCWny_b6jKRY2-iVUeRtKXX39hnsm6nLyPOiHMi_aI; Path=/test; HttpOnly; SameSite=Strict",
-    //   "x-session-key2=76d7:eyJhbGciOiJIUzI1NiJ90NTkyMzNlYWUtNzZkNy00ZTk0LTg1MmEtYmNlYTgyZmU0Zjg00kZCWny_b6jKRY2-iVUeRtKXX39hnsm6nLyPOiHMi_aI; Path=/test; HttpOnly; SameSite=Strict"
+    //   "x-session-key1=76d7:eyJhbGciOiJIUzI1NiJ90NTkyMzNlYWUtNzZkNy00ZTk0LTg1MmEtYmNlYTgyZmU0Zjg00kZCWny_b6jKRY2-iVUeRtKXX39hnsm6nLyPOiHMi_aI; Path=/test; httpOnly; SameSite=Strict",
+    //   "x-session-key2=76d7:eyJhbGciOiJIUzI1NiJ90NTkyMzNlYWUtNzZkNy00ZTk0LTg1MmEtYmNlYTgyZmU0Zjg00kZCWny_b6jKRY2-iVUeRtKXX39hnsm6nLyPOiHMi_aI; Path=/test; httpOnly; SameSite=Strict"
     // ];
     //
 
@@ -859,7 +868,7 @@ class XSession extends XSessionPushEvent {
     cookiesFromServer.forEach((cookie: string) => {
       let name = '';
       let value = '';
-      let options: { [key: string]: string } = {};
+      let options: { [key: string]: any } = {};
       cookie.split('; ').forEach((items: string, index: number) => {
         const [_key, _value] = items.split('=');
         if (index === 0) {
@@ -883,7 +892,74 @@ class XSession extends XSessionPushEvent {
           value,
           options
         );
+      // here's sample for the usage of event.cookies.set(): refs: https://learn.svelte.dev/tutorial/cookies
+      // Calling cookies.set(name, ...) causes a Set-Cookie header to be written, but it also updates the internal map of cookies,
+      // meaning any subsequent calls to cookies.get(name) during the same request will return the updated value.Under the hood,
+      // the cookies API uses the popular cookie package — the options passed to cookies.get and cookies.set correspond to the parse
+      // and serialize options from the cookie documentation[https://github.com/jshttp/cookie#api].SvelteKit sets the following defaults to make your cookies more secure:
+      //
+      // {
+      //   httpOnly: true,
+      //   secure: true,
+      //   sameSite: 'lax'
+      // }
+      //
+      // check the options variables and the cookies header name.
+      // - 'Domain=' : domain
+      // - 'Path=' : path
+      // - 'Expires=' : expires
+      // - 'Max-Age=' : maxAge
+      // - 'SameSite=' : sameSite
+      // - 'Secure;' : secure
+      // - 'HttpOnly;' : httpOnly
+      //
+      // ex)
+      // event.cookies.set("x-session-test1", "value....1", { httpOnly: false, path: "/" });
+      // event.cookies.set("x-session-test2", "value....2", { httpOnly: false, path: "/" });
+      //
+      // So, it needs to set the options manually, as like the above using the cookies header from the server.
+      options['Domain'] ? (options['domain'] = options['Domain']) : undefined;
+      options['Path'] ? (options['path'] = options['Path']) : undefined;
+      options['Expires'] ? (options['expires'] = options['Expires']) : undefined;
+      options['Max-Age'] ? (options['maxAge'] = options['Max-Age']) : undefined;
+      options['SameSite'] ? (options['sameSite'] = options['SameSite']) : undefined;
+      options['Secure'] ? (options['secure'] = true) : (options['secure'] = false);
+      options['HttpOnly'] ? (options['httpOnly'] = true) : (options['httpOnly'] = false);
       cookiesObjectInSvelteKit.set(name, value, options);
+
+      /**
+       * The source of event.cookies.set() function
+       *
+       * const setHeaders_org = function (new_headers: { [key: string]: string }) {
+       *   for (const key in new_headers) {
+       *     const lower = key.toLowerCase();
+       *     const value = new_headers[key];
+       *
+       *     if (lower === "set-cookie") {
+       *       throw new Error(
+       *         "Use `event.cookies.set(name, value, options)` instead of `event.setHeaders` to set cookies"
+       *       );
+       *       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+       *       // @ts-ignore
+       *     } else if (lower in headers) {
+       *       throw new Error(`"${key}" header is already set`);
+       *     } else {
+       *       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+       *       // @ts-ignore
+       *       headers[lower] = value;
+       *
+       *       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+       *       // @ts-ignore
+       *       if (state.prerendering && lower === "cache-control") {
+       *         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+       *         // @ts-ignore
+       *         state.prerendering.cache = / * @type {string} value; * /
+       *       }
+       *     }
+       *   }
+       * };
+       *
+       */
     });
   }
 }

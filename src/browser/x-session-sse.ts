@@ -121,7 +121,11 @@ class XSessionPushEvent extends XSessionEventEmitter implements XSessionClientSe
   private connect(): void {
     // If an EventSource already exists, close it before creating a new one
     this.closeIfOpen();
-    this._eventSource = new EventSource(this._options.url);
+    // This is an optional property. If set to true, it will indicate that the browser should send cookies, HTTP authentication, and client-side SSL certificates with the request.
+    // This is crucial when making cross - origin requests with EventSource if you rely on cookies or HTTP authentication.
+    // if 'this._options.url' is a cross-origin URL (i.e., a different domain or sub-domain from the origin the script is running on),
+    // and you want to send credentials like cookies with the request, you'd set withCredentials to true.
+    this._eventSource = new EventSource(this._options.url, { withCredentials: true });
     this._eventSource.onopen = this.onopen;
     this._eventSource.onerror = this.onerror;
     this._eventSource.onmessage = this.onmessage;
