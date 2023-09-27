@@ -165,7 +165,7 @@ class XSessionPushEvent extends XSessionEventEmitter implements XSessionClientSe
   }
 
   private onmessage(ev: MessageEvent) {
-    this._options.msgDebug && console.debug(`${this.__CLASSNAME__}: New message:`, ev);
+    this._options.msgDebug && ev.data && console.debug(`${this.__CLASSNAME__}: New message:`, ev);
     if (ev.data && typeof ev.data === 'string') {
       if (this._options.useJSONStringify) {
         try {
