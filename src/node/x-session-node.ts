@@ -201,7 +201,31 @@ class XSession extends XSessionPushEvent {
       cookieOptions: this._cookieOptions,
       payload: this._browserInfo,
     };
-    const domainOrigin = getDomainFromUrl(this._browserInfo.windowLocation?.origin || 'localhost');
+
+    // Follow code does not work in the browser, because cookie's Domain needs host.domain.com:port,
+    // But the browser's window.location.origin is protocol://host.domain.com:port
+    //
+    //const domainOrigin = getDomainFromUrl(this._browserInfo.windowLocation?.origin || 'localhost');
+    //
+    // Below are the examples of the window.location properties
+    //
+    // window.location.host : "host.domain.com:3000"
+    // window.location.hostname : "host.domain.com"
+    // window.location.href : "https://host.domain.com:3000/"
+    // window.location.origin : "https://host.domain.com:3000"
+    //
+    // [X] document.cookie = 'host=host.domain.com:3000; Domain=host.domain.com:3000;';
+    //   -> Value='', Domain=host.domain.com:3000 (':' in value is not allowed)
+    // [X] document.cookie = 'host=test; Domain=host.domain.com:3000;';
+    //   -> not applied (':' in value is not allowed)
+    // [O] document.cookie = 'hostname=host.domain.com; Domain=host.domain.com;';
+    //   -> Value = 'host.domain.com', Domain =.host.domain.com (. is added)
+    // [X] document.cookie = 'href=https://host.domain.com:3000/; Domain=https://host.domain.com:3000/;';
+    //   -> not applied
+    // [X] document.cookie = 'origin=https://host.domain.com:3000; Domain=https://host.domain.com:3000;';
+    //   -> not applied
+
+    const domainOrigin = undefined; // means the current domain in the browser
 
     document.cookie = getCookieString(
       { name: 'x-session-data', value: this.getJsonWebToken(cookieValue) },

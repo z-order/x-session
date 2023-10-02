@@ -1,8 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-nocheck
 
-import { type } from 'os';
-
 /**
  * @param domain The domain for the cookie to be valid for.
  * @param path The path for the cookie to be valid for.
@@ -36,8 +34,8 @@ import { type } from 'os';
  * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cookie/Domain
  */
 type XSessionCookieOptions = {
-  domain: string;
-  path: string;
+  domain?: string;
+  path?: string;
   expires?: string;
   httpOnly?: boolean;
   sameSite?: string;
@@ -147,31 +145,31 @@ const getCookieString = (
 ) => {
   let cookieString = `${cookie.name}=${cookie.value}; `;
   const domain =
-    cookieOptions?.domain || cookie.options?.domain || setDefault
-      ? DefaultCookieOptions.domain
-      : false;
+    cookieOptions?.domain ||
+    cookie.options?.domain ||
+    (setDefault ? DefaultCookieOptions.domain : false);
   const path =
-    cookieOptions?.path || cookie.options?.path || setDefault ? DefaultCookieOptions.path : false;
+    cookieOptions?.path || cookie.options?.path || (setDefault ? DefaultCookieOptions.path : false);
   const expires =
-    cookieOptions?.expires || cookie.options?.expires || setDefault
-      ? DefaultCookieOptions.expires
-      : false;
+    cookieOptions?.expires ||
+    cookie.options?.expires ||
+    (setDefault ? DefaultCookieOptions.expires : false);
   const maxAge =
-    cookieOptions?.maxAge || cookie.options?.maxAge || setDefault
-      ? DefaultCookieOptions.maxAge
-      : false;
+    cookieOptions?.maxAge ||
+    cookie.options?.maxAge ||
+    (setDefault ? DefaultCookieOptions.maxAge : false);
   const sameSite =
-    cookieOptions?.sameSite || cookie.options?.sameSite || setDefault
-      ? DefaultCookieOptions.sameSite
-      : false;
+    cookieOptions?.sameSite ||
+    cookie.options?.sameSite ||
+    (setDefault ? DefaultCookieOptions.sameSite : false);
   const httpOnly =
-    cookieOptions?.httpOnly || cookie.options?.httpOnly || setDefault
-      ? DefaultCookieOptions.httpOnly
-      : false;
+    cookieOptions?.httpOnly ||
+    cookie.options?.httpOnly ||
+    (setDefault ? DefaultCookieOptions.httpOnly : false);
   const secure =
-    cookieOptions?.secure || cookie.options?.secure || setDefault
-      ? DefaultCookieOptions.secure
-      : false;
+    cookieOptions?.secure ||
+    cookie.options?.secure ||
+    (setDefault ? DefaultCookieOptions.secure : false);
   if (domain) cookieString += `Domain=${domain}; `;
   if (path) cookieString += `Path=${path}; `;
   if (expires) cookieString += `Expires=${expires}; `;

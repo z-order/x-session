@@ -196,7 +196,29 @@ class XSession extends XSessionPushEvent {
       cookieOptions: this._cookieOptions,
       payload: this._browserInfo,
     };
-    const domainOrigin = getDomainFromUrl(this._browserInfo.windowLocation?.origin || 'localhost');
+
+    // Follow code does not work in the browser, because cookie's Domain needs host.domain.com:port,
+    // But the browser's window.location.origin is protocol://host.domain.com:port
+    //
+    //const domainOrigin = getDomainFromUrl(this._browserInfo.windowLocation?.origin || 'localhost');
+    //
+    // Below are the examples of the window.location properties
+    //
+    // window.location.host : "host.domain.com:3000"
+    // window.location.hostname : "host.domain.com"
+    // window.location.href : "https://host.domain.com:3000/"
+    // window.location.origin : "https://host.domain.com:3000"
+    //
+    // [O] document.cookie = 'host=host.domain.com:3000; Domain=host.domain.com:3000;';
+    //   -> Value='', Domain=host.domain.com:3000 (':' in value is not allowed)
+    // [?] document.cookie = 'hostname=host.domain.com; Domain=host.domain.com;';
+    //   -> Value = 'host.domain.com', Domain =.host.domain.com (. is added if there is no port)
+    // [X] document.cookie = 'href=https://host.domain.com:3000/; Domain=https://host.domain.com:3000/;';
+    //   -> not applied
+    // [X] document.cookie = 'origin=https://host.domain.com:3000; Domain=https://host.domain.com:3000;';
+    //   -> not applied
+
+    const domainOrigin = undefined; // means the current domain in the browser
 
     document.cookie = getCookieString(
       { name: 'x-session-data', value: this.getJsonWebToken(cookieValue) },
@@ -739,7 +761,10 @@ class XSession extends XSessionPushEvent {
       // so call invalidateAll() to re-run the 'load' functions to set the API key
       this.isAvailableAPIKey() && this.start();
 
-      // call invalidateAll() function to re-run the 'load' functions to set the API key in the 'load' function of the routes/+layout.server.ts file using initSvelteSSR() method
+      // Set document.location.href = '/'; to re - run the 'load' functions to set the API key in the 'load' function of the routes / +layout.server.ts file using initSvelteSSR() method
+      // Don't use invalidateAll() inside the onMount() function. It is called only once.
+      // When we call invalidateAll() or goto('/') and the data will be changed from load() in SSR, but the onMount() function will not be called.
+      // So, we can call document.location.href inside onMount() to re-render the page, instead of invalidateAll() or goto().
       return false;
     } else {
       // Create a new x-session when the x-session is not available
