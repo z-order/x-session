@@ -315,8 +315,12 @@ class XSession extends XSessionPushEvent {
         return undefined;
       }
       this._clientSessionId = xSessionData.clientSessionId || null;
-      this._sessionOptions = xSessionData.sessionOptions;
-      this._cookieOptions = xSessionData.cookieOptions;
+      this._sessionOptions = xSessionData.sessionOptions
+        ? Object.assign(xSessionData.sessionOptions, this._sessionOptions)
+        : this._sessionOptions;
+      this._cookieOptions = xSessionData.cookieOptions
+        ? Object.assign(xSessionData.cookieOptions, this._cookieOptions)
+        : this._cookieOptions;
       this._browserInfo = xSessionData.payload;
       if (this._clientSessionId === null) {
         return undefined;
