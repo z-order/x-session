@@ -322,8 +322,12 @@ class XSession extends XSessionPushEvent {
         return undefined;
       }
       this._clientSessionId = xSessionData.clientSessionId || null;
-      this._sessionOptions = xSessionData.sessionOptions;
-      this._cookieOptions = xSessionData.cookieOptions;
+      this._sessionOptions = xSessionData.sessionOptions
+        ? Object.assign(xSessionData.sessionOptions, this._sessionOptions)
+        : this._sessionOptions;
+      this._cookieOptions = xSessionData.cookieOptions
+        ? Object.assign(xSessionData.cookieOptions, this._cookieOptions)
+        : this._cookieOptions;
       this._browserInfo = xSessionData.payload;
       if (this._clientSessionId === null) {
         return undefined;
@@ -461,13 +465,28 @@ class XSession extends XSessionPushEvent {
   }
 
   public config(options: XSessionOptions): XSession {
+    console.log('-----------------------config 1, options', options);
     options.headers = this.getHttpHeaders(options.headers || new Headers());
+    console.log('-----------------------config 2, options.headers', options.headers);
     const headersInVolatile = this._sessionOptionsVolatile?.headers || null;
+    console.log('-----------------------config 3, headersInVolatile', headersInVolatile);
     if (!this._sessionOptionsVolatile) {
+      console.log(
+        '-----------------------config 4, this._sessionOptionsVolatile',
+        this._sessionOptionsVolatile
+      );
       this._sessionOptionsVolatile = { ...this._sessionOptions };
+      console.log(
+        '-----------------------config 5, this._sessionOptionsVolatile',
+        this._sessionOptionsVolatile
+      );
     }
     // Merge options into _sessionOptionsVolatile, overwriting existing properties
     Object.assign(this._sessionOptionsVolatile, options);
+    console.log(
+      '-----------------------config 6, this._sessionOptionsVolatile',
+      this._sessionOptionsVolatile
+    );
     if (headersInVolatile) return this.setHeaders(headersInVolatile);
     return this;
   }
@@ -489,13 +508,22 @@ class XSession extends XSessionPushEvent {
   public async send(msgTypeOrData: string | any, msgData?: any): Promise<XSessionMessage> {
     const __CLASSNAME__ = this.__CLASSNAME__;
     const __FUNCTION__ = 'send()';
+    console.log('-----------------------send 1, msgTypeOrData', msgTypeOrData);
     if (!this._sessionOptionsVolatile) {
+      console.log(
+        '-----------------------send 2, this._sessionOptionsVolatile',
+        this._sessionOptionsVolatile
+      );
       /*
       throw new Error(
         `${this.__CLASSNAME__}::${__FUNCTION__} The session configuration is not set yet. call config() method first before send().`
       );
       */
       this._sessionOptionsVolatile = { ...this._sessionOptions };
+      console.log(
+        '-----------------------send 3, this._sessionOptionsVolatile',
+        this._sessionOptionsVolatile
+      );
     }
     const _msgType = typeof msgTypeOrData === 'string' ? msgTypeOrData : 'message';
     const _msgData = typeof msgTypeOrData === 'string' ? msgData : msgTypeOrData;
