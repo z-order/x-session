@@ -113,7 +113,7 @@ class XSession extends XSessionPushEvent {
     this._cookieOptions = cookieOptions || null;
   }
 
-  private isBrowser(): boolean {
+  public isBrowser(): boolean {
     if (typeof window === null || typeof window === 'undefined') {
       return false;
     }
