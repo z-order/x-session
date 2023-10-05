@@ -111,10 +111,11 @@ class XSession extends XSessionPushEvent {
    * });
    * ```
    */
-  constructor(options: XSessionOptions, cookieOptions?: XSessionCookieOptions) {
-    super(options);
-    this._sessionOptions = options;
-    this._sessionOptions.headers = this.getHttpHeaders(options.headers || new Headers());
+  constructor(options?: XSessionOptions, cookieOptions?: XSessionCookieOptions) {
+    const _options = options ? options : { url: 'localhost' };
+    super(_options);
+    this._sessionOptions = _options;
+    this._sessionOptions.headers = this.getHttpHeaders(_options.headers || new Headers());
     this._cookieOptions = cookieOptions || null;
   }
 
@@ -670,59 +671,63 @@ class XSession extends XSessionPushEvent {
    * ```
    *
    */
-  public async initSvelteSSR(options: XSessionOptions): Promise<object> {
+  public async initSvelteSSR(options?: XSessionOptions): Promise<object> {
     const __CLASSNAME__ = this.__CLASSNAME__;
     const __FUNCTION__ = 'initSvelteSSR()';
+
+    const _options = options ? options : this._sessionOptions;
 
     if (this.isBrowser()) {
       console.log(`${__CLASSNAME__}: ${__FUNCTION__} function cannot be called in browsers! 👎`);
       return {};
     }
 
-    // Check options parameter
-    if (options === null || options === undefined) {
-      // error log
-      console.error(`${__CLASSNAME__}: ${__FUNCTION__} options parameter is null or undefined! 👎`);
-    }
-
-    // Check options.cookies parameter
-    if (options.cookies === null || options.cookies === undefined) {
+    // Check _options parameter
+    if (_options === null || _options === undefined) {
       // error log
       console.error(
-        `${__CLASSNAME__}: ${__FUNCTION__} options.cookies parameter is null or undefined! 👎`
+        `${__CLASSNAME__}: ${__FUNCTION__} _options parameter is null or undefined! 👎`
       );
     }
 
-    // Check options.cookies.getAll() parameter, if cookies is an object, it is the SvelteKit event.cookies
-    options.cookies = options.cookies as XSessioinCookiesHandler;
-    if (typeof options.cookies !== 'object' || typeof options.cookies.getAll !== 'function') {
+    // Check _options.cookies parameter
+    if (_options.cookies === null || _options.cookies === undefined) {
       // error log
       console.error(
-        `${__CLASSNAME__}: ${__FUNCTION__} options.cookies.getAll() is not a function! 👎`
+        `${__CLASSNAME__}: ${__FUNCTION__} _options.cookies parameter is null or undefined! 👎`
+      );
+    }
+
+    // Check _options.cookies.getAll() parameter, if cookies is an object, it is the SvelteKit event.cookies
+    _options.cookies = _options.cookies as XSessioinCookiesHandler;
+    if (typeof _options.cookies !== 'object' || typeof _options.cookies.getAll !== 'function') {
+      // error log
+      console.error(
+        `${__CLASSNAME__}: ${__FUNCTION__} _options.cookies.getAll() is not a function! 👎`
       );
     }
 
     // Check if the x-session is created in the browser using initSvelteCSR() method
-    if (this.isCreatedXSession(options.cookies.getAll())) {
+    if (this.isCreatedXSession(_options.cookies.getAll())) {
       //
       // Load data from the API server
       //
-      this._sessionOptions = options; // Save the options for the this.config().send() method use SvleteKit event.cookies
+      this._sessionOptions = _options; // Save the _options for the this.config().send() method use SvleteKit event.cookies
       let respResources = {};
       const msgType = 'api-{action:authorization}-{crud:create}';
       const msgData = { languageCode: 'en-us' };
       await this.config({
         // The API key is to be set in the SSR only, and the browser doesn't need to set.
         // The browser automatically sends the key to the server when this message is sent and received normally.
-        apiKey: options.apiKey, // API key is set in SSR only for the secure reason, after then, the CSR can use APIs without API key.
-        cookies: options.cookies,
-        clientIPAddress: options.clientIPAddress,
-        url: options.url,
-        msgDebug: options.msgDebug,
+        apiKey: _options.apiKey, // API key is set in SSR only for the secure reason, after then, the CSR can use APIs without API key.
+        cookies: _options.cookies,
+        clientIPAddress: _options.clientIPAddress,
+        url: _options.url,
+        msgDebug: _options.msgDebug,
       })
         .send(msgType, msgData)
         .then((res: any) => {
-          options.msgDebug &&
+          _options.msgDebug &&
             console.debug(
               `${__CLASSNAME__}: ${__FUNCTION__} got the response from the API server => `,
               res
@@ -735,7 +740,7 @@ class XSession extends XSessionPushEvent {
         });
 
       // This is a flag to indicate that the page can call xsession.start() for the push events from the API server and can call the APIs.
-      return { initSvelteSSR: true };
+      return { initSvelteSSR: true, authPayload: respResources };
     }
     // This is a flag to indicate that the page can not call the APIs.
     // So, the page must create a new x-session using xsession.checkXSession().isDisabled().createXSession(); on onMount().

@@ -22,7 +22,7 @@ class XSessionWrapper extends XSession {
     return await super.send(msgTypeOrData, msgData);
   }
 
-  public static async initSvelteSSR(options: XSessionOptions): Promise<object | undefined> {
+  public static async initSvelteSSR(options?: XSessionOptions): Promise<object | undefined> {
     return await new XSessionWrapper(options).initSvelteSSR(options);
   }
 

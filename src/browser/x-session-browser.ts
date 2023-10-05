@@ -106,10 +106,11 @@ class XSession extends XSessionPushEvent {
    * });
    * ```
    */
-  constructor(options: XSessionOptions, cookieOptions?: XSessionCookieOptions) {
-    super(options);
-    this._sessionOptions = options;
-    this._sessionOptions.headers = this.getHttpHeaders(options.headers || new Headers());
+  constructor(options?: XSessionOptions, cookieOptions?: XSessionCookieOptions) {
+    const _options = options ? options : { url: 'localhost' };
+    super(_options);
+    this._sessionOptions = _options;
+    this._sessionOptions.headers = this.getHttpHeaders(_options.headers || new Headers());
     this._cookieOptions = cookieOptions || null;
   }
 
@@ -647,7 +648,7 @@ class XSession extends XSessionPushEvent {
    * ```
    *
    */
-  public async initSvelteSSR(options: XSessionOptions): Promise<object | undefined> {
+  public async initSvelteSSR(options?: XSessionOptions): Promise<object | undefined> {
     const __CLASSNAME__ = this.__CLASSNAME__;
     const __FUNCTION__ = 'initSvelteSSR()';
 
