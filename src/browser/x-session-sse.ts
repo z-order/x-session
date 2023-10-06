@@ -171,8 +171,8 @@ class XSessionPushEvent extends XSessionEventEmitter implements XSessionClientSe
         try {
           const data = JSON.parse(ev.data ?? '{}');
           if (data.msgType) {
-            this.emit('message', { type: data.msgType, data: data.msgData });
-            this.emit(data.msgType, { type: data.msgType, data: data.msgData });
+            this.emit('message', { msgType: data.msgType, msgData: data.msgData });
+            this.emit(data.msgType, { msgType: data.msgType, msgData: data.msgData });
           }
         } catch {
           console.error(
@@ -180,10 +180,10 @@ class XSessionPushEvent extends XSessionEventEmitter implements XSessionClientSe
             ev,
             "If you don't want to use JSON.stringify()/JSON.parse(), set useJSONStringify: false in the options"
           );
-          this.emit('message', { type: 'text', data: ev.data });
+          this.emit('message', { msgType: 'text', msgData: ev.data });
         }
       } else {
-        this.emit('message', { type: 'text', data: ev.data });
+        this.emit('message', { msgType: 'text', msgData: ev.data });
       }
       return;
     }
@@ -191,10 +191,11 @@ class XSessionPushEvent extends XSessionEventEmitter implements XSessionClientSe
     // so, following code will not be executed
     if (ev.data && typeof ev.data === 'object') {
       const { msgType, msgData } = ev.data;
-      console.log('ev.data:', ev.data, 'msgType:', msgType, 'msgData:', msgData);
+      this._options.msgDebug &&
+        console.log('ev.data:', ev.data, 'msgType:', msgType, 'msgData:', msgData);
       if (msgType) {
-        this.emit('message', { type: msgType, data: msgData });
-        this.emit(msgType, { type: msgType, data: msgData });
+        this.emit('message', { msgType: msgType, msgData: msgData });
+        this.emit(msgType, { msgType: msgType, msgData: msgData });
       }
       return;
     }
@@ -207,7 +208,7 @@ class XSessionPushEvent extends XSessionEventEmitter implements XSessionClientSe
     //
     // If an EventSource exists, close it
     if (this._eventSource) {
-      console.debug(`${this.__CLASSNAME__}: Closing connection...Done!`);
+      console.log(`${this.__CLASSNAME__}: Closing connection...Done!`);
       this._eventSource.close();
       this._eventSource = null;
       this._opened = false;
