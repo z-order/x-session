@@ -1,6 +1,6 @@
 {
   "name": "x-session",
-  "version": "0.2.44",
+  "version": "0.2.46",
   "description": "XSession(x-session) and XCache(xcache) modules for the browsers, and Node.js modules for the server-side rendering of SvelteKit +[layout/page].server.ts to communicate with x-session API Server.",
   "author": "Chris Stanley <st.theway@gmail.com>",
   "license": "MIT",

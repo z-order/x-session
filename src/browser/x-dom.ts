@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-nocheck
 
-const _xdomDebug = false;
+let _xdomDebug = false;
 
 class XDom {
   public static __CLASSNAME__ = 'XDom';
