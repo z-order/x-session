@@ -10,26 +10,39 @@ class XDom {
     _xdomDebug = debug;
   }
 
-  public static InitXDomElements() {
+  /**
+   *
+   * @param backgroundColor Background color for the full-screen : blue, red, green, yellow, black, white, etc. (Default: '#303030')
+   * @reference Check the full-screen mode on your browser Refs) https://developer.mozilla.org/en-US/docs/Web/API/Fullscreen_API
+   * @returns {void}
+   */
+  public static InitXDomElements(_backgroundColor?: string) {
     if (typeof document === 'undefined') return;
     if (typeof window === 'undefined') return;
 
     // Style the page
-    const style = document.createElement('style');
-    let styleText = ':-webkit-full-screen { background-color: #303030; } \n'; // Chrome, Safari and Opera syntax
-    styleText += ':-moz-full-screen { background-color: #303030; } \n'; // Firefox syntax
-    styleText += ':-ms-fullscreen { background-color: #303030; } \n'; // IE11 or Edge syntax
-    styleText += ':fullscreen { background-color: #303030; } \n'; // Standard syntax
-    styleText += 'button { padding: 20px; font-size: 20px; } \n'; // Style the button
-    style.textContent = styleText;
-    document.head.appendChild(style);
+    const backgroundColor = _backgroundColor ? _backgroundColor : '#303030';
+    let styleText = `:-webkit-full-screen { background-color: ${backgroundColor}; } \n`; // Chrome, Safari and Opera syntax
+    styleText += `:-moz-full-screen { background-color: ${backgroundColor}; } \n`; // Firefox syntax
+    styleText += `:-ms-fullscreen { background-color: ${backgroundColor}; } \n`; // IE11 or Edge syntax
+    styleText += `:fullscreen { background-color: ${backgroundColor}; } \n`; // Standard syntax
+    /**
+     * // Example: How to style a button, you can add your own styles here for all your elements
+     *
+     * styleText += `button { padding: 20px; font-size: 20px; } \n`; // Style the button
+     *
+     */
+    XDom.setStyle('xdom$$Init', styleText);
 
     // Create xdom object
     window.xdom = window.xdom || {};
 
-    // Fullscreen functions
-    const elem = document.documentElement;
+    // Fullscreen functions: you can call these functions from your code,
+    // for example:
+    // window.xdom.openFullscreen(); // Open fullscreen
+    // window.xdom.closeFullscreen(); // Close fullscreen
     window.xdom.openFullscreen = () => {
+      const elem = document.documentElement;
       if (elem.requestFullscreen) {
         elem.requestFullscreen();
       } else if (elem.webkitRequestFullscreen) {
@@ -38,8 +51,8 @@ class XDom {
         elem.msRequestFullscreen(); // IE11 or Edge
       }
     };
-
     window.xdom.closeFullscreen = () => {
+      const elem = document.documentElement;
       if (document.exitFullscreen) {
         document.exitFullscreen();
       } else if (document.webkitExitFullscreen) {
@@ -48,10 +61,49 @@ class XDom {
         document.msExitFullscreen(); // IE11 or Edge
       }
     };
+    document.addEventListener('fullscreenchange', function () {
+      if (document.fullscreenElement) {
+        // console.log('Entered fullscreen mode');
+      } else {
+        // console.log('Exited fullscreen mode');
+      }
+    });
 
-    // Add event listeners
+    // 1. Create the 'xdom$$openFullscreen' button
+    const openFullscreenButton = document.createElement('button');
+    openFullscreenButton.id = 'xdom$$openFullscreen';
+    openFullscreenButton.innerText = 'Open Fullscreen';
+    openFullscreenButton.style.visibility = 'hidden'; // 'visible' or 'hidden';
+    openFullscreenButton.style.position = 'absolute';
+    openFullscreenButton.style.color = 'cyan';
+    openFullscreenButton.style.left = `20px`;
+    openFullscreenButton.style.top = `20px`;
+    openFullscreenButton.style.width = `150px`;
+    openFullscreenButton.style.height = `120px`;
+    openFullscreenButton.style.overflow = 'auto';
+    openFullscreenButton.style.zIndex = '999';
+
+    // 2. Create the 'xdom$$closeFullscreen' button
+    const closeFullscreenButton = document.createElement('button');
+    closeFullscreenButton.id = 'xdom$$closeFullscreen';
+    closeFullscreenButton.innerText = 'Close Fullscreen';
+    closeFullscreenButton.style.visibility = 'hidden'; // 'visible' or 'hidden';
+    closeFullscreenButton.style.position = 'absolute';
+    closeFullscreenButton.style.color = 'cyan';
+    closeFullscreenButton.style.left = `190px`;
+    closeFullscreenButton.style.top = `20px`;
+    closeFullscreenButton.style.width = `150px`;
+    closeFullscreenButton.style.height = `120px`;
+    openFullscreenButton.style.overflow = 'auto';
+    openFullscreenButton.style.zIndex = '999';
+
+    // 3. Append both buttons to the body (or another container of your choice)
+    document.body.appendChild(openFullscreenButton);
+    document.body.appendChild(closeFullscreenButton);
+
+    // 4. Add event listeners
     document
-      .getElementById('xdom$$OpenFullscreen')
+      .getElementById('xdom$$openFullscreen')
       ?.addEventListener('click', window.xdom.openFullscreen);
     document
       .getElementById('xdom$$closeFullscreen')
@@ -63,12 +115,331 @@ class XDom {
     });
   }
 
+  public static isLocalhost() {
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      // window.location.host : "host.domain.com:3000"
+      // window.location.hostname : "host.domain.com"
+      // window.location.href : "https://host.domain.com:3000/"
+      // window.location.origin : "https://host.domain.com:3000"
+      return true;
+    }
+    return false;
+  }
+
+  public static isMobileDevice() {
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+
+    // Check for Android
+    if (/android/i.test(userAgent)) {
+      return true;
+    }
+
+    // Check for iOS
+    if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+      return true;
+    }
+
+    return false;
+  }
+
+  public static isIOS() {
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+
+    // Check for iOS
+    if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+      return true;
+    }
+  }
+
+  public static isAndroid() {
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+
+    // Check for Android
+    if (/android/i.test(userAgent)) {
+      return true;
+    }
+  }
+
+  public static isChrome() {
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+
+    // Check for Chrome
+    if (/Chrome/i.test(userAgent)) {
+      return true;
+    }
+  }
+
+  public static isSafari() {
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+
+    // Check for Safari
+    if (/Safari/i.test(userAgent)) {
+      return true;
+    }
+  }
+
+  public static isFirefox() {
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+
+    // Check for Firefox
+    if (/Firefox/i.test(userAgent)) {
+      return true;
+    }
+  }
+
+  public static isIE() {
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+
+    // Check for IE
+    if (/MSIE/i.test(userAgent)) {
+      return true;
+    }
+  }
+
+  public static isEdge() {
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+
+    // Check for Edge
+    if (/Edge/i.test(userAgent)) {
+      return true;
+    }
+  }
+
+  public static isOpera() {
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+
+    // Check for Opera
+    if (/Opera/i.test(userAgent)) {
+      return true;
+    }
+  }
+
+  public static isWindows() {
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+
+    // Check for Windows
+    if (/Windows/i.test(userAgent)) {
+      return true;
+    }
+  }
+
+  public static isMac() {
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+
+    // Check for Mac
+    if (/Mac/i.test(userAgent)) {
+      return true;
+    }
+  }
+
+  public static isLinux() {
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+
+    // Check for Linux
+    if (/Linux/i.test(userAgent)) {
+      return true;
+    }
+  }
+
+  public static getBrowser() {
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+
+    // Check for Chrome
+    if (/Chrome/i.test(userAgent)) {
+      return 'Chrome';
+    }
+
+    // Check for Safari
+    if (/Safari/i.test(userAgent)) {
+      return 'Safari';
+    }
+
+    // Check for Firefox
+    if (/Firefox/i.test(userAgent)) {
+      return 'Firefox';
+    }
+
+    // Check for IE
+    if (/MSIE/i.test(userAgent)) {
+      return 'IE';
+    }
+
+    // Check for Edge
+    if (/Edge/i.test(userAgent)) {
+      return 'Edge';
+    }
+
+    // Check for Opera
+    if (/Opera/i.test(userAgent)) {
+      return 'Opera';
+    }
+
+    // Check for Android
+    if (/android/i.test(userAgent)) {
+      return 'Android';
+    }
+
+    // Check for iOS
+    if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+      return 'iOS';
+    }
+
+    // Check for Windows
+    if (/Windows/i.test(userAgent)) {
+      return 'Windows';
+    }
+
+    // Check for Mac
+    if (/Mac/i.test(userAgent)) {
+      return 'Mac';
+    }
+
+    // Check for Linux
+    if (/Linux/i.test(userAgent)) {
+      return 'Linux';
+    }
+
+    // Check for unknown
+    return 'unknown';
+  }
+
+  public static getBrowserVersion() {
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+
+    // Check for Chrome
+    if (/Chrome/i.test(userAgent)) {
+      return userAgent.match(/Chrome\/([\d.]+)/)[1];
+    }
+
+    // Check for Safari
+    if (/Safari/i.test(userAgent)) {
+      return userAgent.match(/Safari\/([\d.]+)/)[1];
+    }
+
+    // Check for Firefox
+    if (/Firefox/i.test(userAgent)) {
+      return userAgent.match(/Firefox\/([\d.]+)/)[1];
+    }
+
+    // Check for IE
+    if (/MSIE/i.test(userAgent)) {
+      return userAgent.match(/MSIE\/([\d.]+)/)[1];
+    }
+
+    // Check for Edge
+    if (/Edge/i.test(userAgent)) {
+      return userAgent.match(/Edge\/([\d.]+)/)[1];
+    }
+
+    // Check for Opera
+    if (/Opera/i.test(userAgent)) {
+      return userAgent.match(/Opera\/([\d.]+)/)[1];
+    }
+
+    // Check for Android
+    if (/android/i.test(userAgent)) {
+      return userAgent.match(/Android\s([\d.]+)/)[1];
+    }
+
+    // Check for iOS
+    if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+      return userAgent.match(/OS\s([\d_]+)/)[1];
+    }
+
+    // Check for Windows
+    if (/Windows/i.test(userAgent)) {
+      return userAgent.match(/Windows\s([\d.]+)/)[1];
+    }
+
+    // Check for Mac
+    if (/Mac/i.test(userAgent)) {
+      return userAgent.match(/Mac\s([\d.]+)/)[1];
+    }
+
+    // Check for Linux
+    if (/Linux/i.test(userAgent)) {
+      return userAgent.match(/Linux\s([\d.]+)/)[1];
+    }
+
+    // Check for unknown
+    return 'unknown';
+  }
+
+  public static getBrowserLanguage() {
+    const language = navigator.language || navigator.userLanguage;
+    return language;
+  }
+
+  public static getPlatform() {
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+
+    // Check for Android
+    if (/android/i.test(userAgent)) {
+      return 'Android';
+    }
+
+    // Check for iOS
+    if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+      return 'iOS';
+    }
+
+    // Check for Windows
+    if (/Windows/i.test(userAgent)) {
+      return 'Windows';
+    }
+
+    // Check for Mac
+    if (/Mac/i.test(userAgent)) {
+      return 'Mac';
+    }
+
+    // Check for Linux
+    if (/Linux/i.test(userAgent)) {
+      return 'Linux';
+    }
+
+    // Check for unknown
+    return 'unknown';
+  }
+
+  public static isFullscreen() {
+    if (
+      document.fullscreenElement ||
+      document.webkitFullscreenElement || // Chrome, Safari and Opera
+      document.mozFullScreenElement || // Firefox
+      document.msFullscreenElement // IE/Edge
+    ) {
+      // 'The document is in fullscreen mode.'
+      return true;
+    } else {
+      // 'The document is not in fullscreen mode.'
+      return false;
+    }
+  }
+
+  public static async openFullscreen() {
+    !XDom.isFullscreen() && window.xdom?.openFullscreen();
+  }
+
+  public static closeFullscreen() {
+    XDom.isFullscreen() && window.xdom?.closeFullscreen();
+  }
+
+  public static enableFullscreenButton(showButton: boolean) {
+    document.getElementById('xdom$$openFullscreen')!.style.visibility = showButton
+      ? 'visible'
+      : 'hidden';
+    document.getElementById('xdom$$closeFullscreen')!.style.visibility = showButton
+      ? 'visible'
+      : 'hidden';
+  }
+
   public static enableFullscreen() {
     // Set the viewport properties
-    var meta = document.createElement('meta');
-    meta.name = 'viewport';
-    meta.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no';
-    document.getElementsByTagName('head')[0].appendChild(meta);
+    XDom.appendMeta(
+      'viewport',
+      'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no'
+    );
 
     // Set the body styles
     document.body.style.margin = '0';
@@ -84,21 +455,58 @@ class XDom {
     });
   }
 
+  public static fullscreenEnabled() {
+    return document.fullscreenEnabled;
+  }
+
+  public static metaExists(name: string, content: string) {
+    const metaTags = document.getElementsByTagName('meta');
+    for (let i = 0; i < metaTags.length; i++) {
+      if (metaTags[i].name === name && metaTags[i].content === content) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public static appendMeta(name: string, content: string) {
+    if (!XDom.metaExists(name, content)) {
+      const meta = document.createElement('meta');
+      meta.name = name;
+      meta.content = content;
+      document.getElementsByTagName('head')[0].appendChild(meta);
+    }
+  }
+
   public static setMetaTags() {
-    var viewport = document.createElement('meta');
-    viewport.name = 'viewport';
-    viewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
-    document.getElementsByTagName('head')[0].appendChild(viewport);
+    XDom.appendMeta(
+      'viewport',
+      'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no'
+    );
+    XDom.appendMeta('apple-mobile-web-app-capable', 'yes');
+    XDom.appendMeta('apple-mobile-web-app-status-bar-style', 'black-translucent');
+    XDom.appendMeta('mobile-web-app-capable', 'yes');
+  }
 
-    var appleWebAppCapable = document.createElement('meta');
-    appleWebAppCapable.name = 'apple-mobile-web-app-capable';
-    appleWebAppCapable.content = 'yes';
-    document.getElementsByTagName('head')[0].appendChild(appleWebAppCapable);
+  public static setStyle(styleId: string, styleScript: string) {
+    let style = document.querySelector(`style[data-id="${styleId}"]`);
+    if (!style) {
+      // If the style tag doesn't exist, create one
+      style = document.createElement('style');
+      style.setAttribute('data-id', styleId);
+      style.textContent = styleScript;
+      document.head.appendChild(style);
+    } else {
+      // Update the content of the style tag
+      style.textContent = styleScript;
+    }
+  }
 
-    var appleStatusBarStyle = document.createElement('meta');
-    appleStatusBarStyle.name = 'apple-mobile-web-app-status-bar-style';
-    appleStatusBarStyle.content = 'black-translucent';
-    document.getElementsByTagName('head')[0].appendChild(appleStatusBarStyle);
+  public static removeStyle(styleId: string) {
+    const style = document.querySelector(`style[data-id="${styleId}"]`);
+    if (style) {
+      style.parentNode.removeChild(style);
+    }
   }
 
   public static setStyleBodyFullByClassName(

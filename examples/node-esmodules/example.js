@@ -33,7 +33,9 @@ const runTestXCacheData = async () => {
 
   xcache.malloc('key-1', { key: 'key-1', value: 'value-1' });
   xcache.malloc('key-2', { key: 'key-2', value: 'value-2' });
-  xcache.malloc('key-3', { key: 'key-3', value: 'value-3' });
+  xcache.malloc('key-3', { key: 'key-3', value: 'value-3' }, 5, (cacheData) => {
+    console.log('callback', cacheData);
+  });
 
   console.log(xcache.read('key-1')); // output: { key: 'key-1', value: 'value-1' }
   console.log(xcache.read('key-2')); // output: { key: 'key-2', value: 'value-2' }
@@ -53,6 +55,10 @@ const runTestXCacheData = async () => {
   console.log('\n\nxcache.statusAll() =>', xcache.statusAll());
   await enterKey();
   console.clear();
+
+  console.log('Waiting 5 seconds for callback function ...');
+  await sleep(5000);
+  await enterKey();
 
   console.log('Waiting 6 seconds ...');
   await enterKey();
@@ -191,6 +197,11 @@ const runTestXCacheEvent = async () => {
 
   // create event for xcache.event().on(() => {})
   xcache.createEvent(key, eventName, lifecycleSeconds);
+
+  // check that the event exists
+  console.log('xcache.checkEvent(key, eventName) =>', xcache.checkEvent(key, eventName));
+  await enterKey();
+  console.clear();
 
   // add some data to the cache data: xcache.read(key)
   xcache.read(key).someAddedData1 = 'someAddedData...1';

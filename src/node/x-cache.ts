@@ -22,6 +22,8 @@ type XCacheData = {
     _writeAt: number; // milliseconds, default: Date.now()
     _readAt: number; // milliseconds, default: Date.now()
     _maxAge: number; // seconds, default: 0 (no limit)
+    _callback?: (cacheData: XCacheData, callbackParam?: any) => void; // callback function when the item is freed or deleted
+    _callbackParam?: any; // arguments for the callback function from the free() method
   };
   cacheEvent: Map<string, XCacheEvent>;
 };
@@ -190,6 +192,7 @@ class XCache extends XCacheConfigurator {
    * @param {string} key unique key for the item
    * @param {object} value object to be cached
    * @param {number} maxAge in seconds, default is 604800 (7 days), 0 for no limit
+   * @param {function} callback function to be called when the item is freed or deleted
    * @returns {XCache} this
    * @throws {Error} if key already exists
    * @example
@@ -201,7 +204,12 @@ class XCache extends XCacheConfigurator {
    *   console.error(err);
    * }
    */
-  public malloc(key: string, value: object, maxAge?: number): XCacheData {
+  public malloc(
+    key: string,
+    value: object,
+    maxAge?: number,
+    callback?: (cacheData: XCacheData, callbackParam?: any) => void
+  ): XCacheData {
     const __FUNCTION__ = 'malloc()';
     if (this._memcache.has(key)) {
       throw new Error(`${this.__CLASSNAME__}::${__FUNCTION__} Key ${key} already exists!`);
@@ -218,6 +226,7 @@ class XCache extends XCacheConfigurator {
       },
       cacheEvent: new Map(),
     };
+    callback && (item.cacheControl._callback = callback);
     this._memcache.set(key, item);
     return item;
   }
@@ -270,14 +279,20 @@ class XCache extends XCacheConfigurator {
     return this._memcache.has(key);
   }
 
-  public free(key: string): boolean {
+  public free(key: string, callbackParam?: any): boolean {
     const item: XCacheData = this._memcache.get(key);
     if (item != undefined && item.cacheControl._refCount > 0) {
       item.cacheControl._refCount--;
       if (item.cacheControl._refCount === 0) {
+        if (callbackParam) {
+          item.cacheControl._callback?.bind(null, item, callbackParam)();
+        } else {
+          item.cacheControl._callback?.bind(null, item)();
+        }
         this._memcache.delete(key);
       } else {
-        /* there is noe need to set the item back to the _memcache, cause it is a reference
+        callbackParam && (item.cacheControl._callbackParam = callbackParam);
+        /* there is no need to set the item back to the _memcache, cause it is a reference
          * this._memcache.set(key, item);
          */
       }
@@ -344,6 +359,11 @@ class XCache extends XCacheConfigurator {
     if (item != undefined && item.cacheControl._refCount > 0) {
       item.cacheControl._refCount--;
       if (item.cacheControl._refCount === 0) {
+        if (item.cacheControl._callbackParam) {
+          item.cacheControl._callback?.bind(null, item, item.cacheControl._callbackParam)();
+        } else {
+          item.cacheControl._callback?.bind(null, item)();
+        }
         this._memcache.delete(key);
         return 0;
       } else {
@@ -367,6 +387,7 @@ class XCache extends XCacheConfigurator {
         );
         const elapsed = now - checkAt;
         if (elapsed > item.cacheControl._maxAge * 1000) {
+          item.cacheControl._callback?.bind(null, item)();
           this._memcache.delete(key);
         }
       }
