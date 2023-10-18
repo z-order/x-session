@@ -279,6 +279,84 @@ class XCache extends XCacheConfigurator {
     return this._memcache.has(key);
   }
 
+  public refCount(key: string): number | undefined {
+    const item: XCacheData = this._memcache.get(key);
+    if (item === undefined) {
+      return undefined;
+    }
+    return item.cacheControl._refCount;
+  }
+
+  public mallocAt(key: string): number | undefined {
+    const item: XCacheData = this._memcache.get(key);
+    if (item === undefined) {
+      return undefined;
+    }
+    return item.cacheControl._mallocAt;
+  }
+
+  public writeAt(key: string): number | undefined {
+    const item: XCacheData = this._memcache.get(key);
+    if (item === undefined) {
+      return undefined;
+    }
+    return item.cacheControl._writeAt;
+  }
+
+  public readAt(key: string): number | undefined {
+    const item: XCacheData = this._memcache.get(key);
+    if (item === undefined) {
+      return undefined;
+    }
+    return item.cacheControl._readAt;
+  }
+
+  public maxAge(key: string): number | undefined {
+    const item: XCacheData = this._memcache.get(key);
+    if (item === undefined) {
+      return undefined;
+    }
+    return item.cacheControl._maxAge;
+  }
+
+  public minAt(key: string): number | undefined {
+    const item: XCacheData = this._memcache.get(key);
+    if (item === undefined) {
+      return undefined;
+    }
+    return Math.min(
+      item.cacheControl._mallocAt,
+      item.cacheControl._writeAt,
+      item.cacheControl._readAt
+    );
+  }
+
+  public maxAt(key: string): number | undefined {
+    const item: XCacheData = this._memcache.get(key);
+    if (item === undefined) {
+      return undefined;
+    }
+    return Math.max(
+      item.cacheControl._mallocAt,
+      item.cacheControl._writeAt,
+      item.cacheControl._readAt
+    );
+  }
+
+  public checkIdle(key: string): number | undefined {
+    const item: XCacheData = this._memcache.get(key);
+    if (item === undefined) {
+      return undefined;
+    }
+    const checkAt = Math.max(
+      item.cacheControl._mallocAt,
+      item.cacheControl._writeAt,
+      item.cacheControl._readAt
+    );
+    // seconds for idle time
+    return (Date.now() - checkAt) / 1000;
+  }
+
   public free(key: string, callbackParam?: any): boolean {
     const item: XCacheData = this._memcache.get(key);
     if (item != undefined && item.cacheControl._refCount > 0) {

@@ -948,7 +948,7 @@ class XSession extends XSessionPushEvent {
       options['Domain'] && delete options['Domain'];
       options['Path'] ? (options['path'] = options['Path']) : undefined;
       options['Path'] && delete options['Path'];
-      options['Expires'] ? (options['expires'] = options['Expires']) : undefined;
+      options['Expires'] ? (options['expires'] = new Date(options['Expires'])) : undefined;
       options['Expires'] && delete options['Expires'];
       options['Max-Age'] ? (options['maxAge'] = options['Max-Age']) : undefined;
       options['Max-Age'] && delete options['Max-Age'];
