@@ -500,6 +500,153 @@ class XDom {
 		<animateTransform  \
 			attributeName="transform" \
 			type="translate" \
+			from="0 38" \
+			to="0 0" \
+			dur="1.5s" \
+			repeatCount="indefinite" \
+		/> \
+		<path d="M-2.05218e-06 61.5258C-3.18556e-06 48.5614 11.1929 38.0516 25 38.0516C38.8071 38.0516 50 48.5614 50 61.5258C50 74.4903 38.8071 85 25 85C11.1929 85 -9.18791e-07 74.4903 -2.05218e-06 61.5258Z" fill="#7EE684"/> \
+		<path d="M26.7678 1.23223C25.7915 0.255923 24.2085 0.255923 23.2322 1.23223L7.32233 17.1421C6.34602 18.1184 6.34602 19.7014 7.32233 20.6777C8.29864 21.654 9.88155 21.654 10.8579 20.6777L25 6.53553L39.1421 20.6777C40.1184 21.654 41.7014 21.654 42.6777 20.6777C43.654 19.7014 43.654 18.1184 42.6777 17.1421L26.7678 1.23223ZM27.5 63L27.5 3L22.5 3L22.5 63L27.5 63Z" fill="#7EE684"/>	\
+		</g> \
+		</svg>';
+    let svgArrowDownAnim =
+      '<svg width="50" height="120" viewBox="0 0 50 120" fill="none" xmlns="http://www.w3.org/2000/svg"> \
+		<g> \
+        <animateTransform \
+            attributeName="transform" \
+            type="translate" \
+            from="0 0" \
+            to="0 38" \
+            dur="1.5s" \
+            repeatCount="indefinite" \
+        /> \
+		<path d="M50 23.4742C50 36.4386 38.8071 46.9484 25 46.9484C11.1929 46.9484 -6.37113e-06 36.4386 -4.10436e-06 23.4742C-1.83758e-06 10.5097 11.1929 1.95703e-06 25 4.37114e-06C38.8071 6.78525e-06 50 10.5098 50 23.4742Z" fill="#7EE684"/> \
+		<path d="M23.2322 83.7678C24.2085 84.7441 25.7914 84.7441 26.7678 83.7678L42.6777 67.8579C43.654 66.8816 43.654 65.2986 42.6777 64.3223C41.7013 63.346 40.1184 63.346 39.1421 64.3223L25 78.4645L10.8579 64.3223C9.88154 63.346 8.29863 63.346 7.32232 64.3223C6.34601 65.2986 6.34601 66.8815 7.32232 67.8579L23.2322 83.7678ZM22.5 22L22.5 82L27.5 82L27.5 22L22.5 22Z" fill="#7EE684"/> \
+  	 	</g> \
+		</svg>';
+
+    const containerHtmlElement = document.getElementById(containerId) as HTMLElement;
+    if (containerHtmlElement === null || containerHtmlElement === undefined) {
+      return;
+    }
+
+    if (!XDom.isSafari()) {
+      return XDom.openFullscreenGDesktop(containerId, url);
+    }
+
+    const iframe = document.createElement('iframe');
+    const iframeId = `xdom$$iframe-${containerId}`;
+    iframe.src = url; // Replace with your desired URL
+    iframe.id = iframeId;
+    // Set style properties directly
+    iframe.style.width = '100vw';
+    iframe.style.height = '100vh';
+    iframe.style.border = 'none';
+    iframe.style.position = 'absolute';
+    iframe.style.top = '100px';
+    iframe.style.left = '0';
+    document.body.appendChild(iframe);
+
+    const divDownArrow = document.createElement('div');
+    divDownArrow.id = 'xdom$$divDownArrow';
+    divDownArrow.style.width = '50px';
+    divDownArrow.style.height = '150px';
+    divDownArrow.style.border = 'none';
+    divDownArrow.style.position = 'absolute';
+    divDownArrow.style.top = '10%'; // 80% -> 10% : 80% for the position of bottom, 10% for the position of top
+    divDownArrow.style.left = '45%';
+    divDownArrow.style.zIndex = '100';
+    divDownArrow.style.display = 'none';
+    divDownArrow.innerHTML = svgArrowDownAnim;
+
+    const divUpArrow = document.createElement('div');
+    divUpArrow.id = 'xdom$$divUpArrow';
+    divUpArrow.style.width = '50px';
+    divUpArrow.style.height = '150px';
+    divUpArrow.style.border = 'none';
+    divUpArrow.style.position = 'absolute';
+    divUpArrow.style.top = '8%';
+    divUpArrow.style.left = '45%';
+    divUpArrow.style.zIndex = '100';
+    divUpArrow.style.display = 'none';
+    divUpArrow.innerHTML = svgArrowUpAnim;
+
+    containerHtmlElement.appendChild(iframe);
+    containerHtmlElement.appendChild(divDownArrow);
+    containerHtmlElement.appendChild(divUpArrow);
+
+    setTimeout(() => {
+      divUpArrow.style.display = 'block';
+    }, 2000);
+
+    const bigGap = window.outerHeight - window.innerHeight;
+    let lastWindowHeight = window.innerHeight;
+
+    window.addEventListener('resize', () => {
+      // Landscape mode
+      if (window.innerHeight < window.innerWidth) {
+        // Set style properties directly
+        iframe.style.width = '100vw';
+        iframe.style.height = '100vh';
+        iframe.style.border = 'none';
+        iframe.style.position = 'absolute';
+        iframe.style.top = '0px';
+        iframe.style.left = '0px';
+        return;
+      } else {
+        // Portrait mode
+        const scrollY = window.scrollY; // description: https://developer.mozilla.org/en-US/docs/Web/API/Window/scrollY
+        const currentGap = window.outerHeight - window.innerHeight;
+        const iframe = document.getElementById(iframeId) as HTMLElement;
+        const currentWindowHeight = window.innerHeight;
+        if (currentWindowHeight > lastWindowHeight && currentGap >= bigGap) {
+          //console.log("iOS Browser bottom bar might be hidden now");
+          iframe.style.height = '100vh';
+          divDownArrow.style.display = 'none'; // https://www.w3schools.com/cssref/pr_class_display.asp
+          divUpArrow.style.display = 'block';
+        } else if (currentWindowHeight > lastWindowHeight && currentGap < bigGap) {
+          //console.log("iOS Browser bottom bar might be hidden now");
+          divDownArrow.style.display = 'none';
+          divUpArrow.style.display = 'none';
+        } else if (currentWindowHeight < lastWindowHeight && currentGap >= bigGap) {
+          //console.log("iOS Browser bottom bar might be visible now");
+          iframe.style.top = '100px';
+          iframe.style.left = '0';
+          iframe.style.height = '100vh';
+          if (scrollY > 80) {
+            divDownArrow.style.display = 'block';
+            divUpArrow.style.display = 'none';
+          } else {
+            divDownArrow.style.display = 'none';
+            divUpArrow.style.display = 'block';
+          }
+          /* If you want to use down arrow in the bottom, use this code
+          iframe.style.height = '80vh';
+          divDownArrow.style.display = 'block';
+          divUpArrow.style.display = 'none';
+          */
+        } else if (currentWindowHeight < lastWindowHeight && currentGap < bigGap) {
+          //console.log("iOS Browser bottom bar might be visible now");
+          divDownArrow.style.display = 'none';
+          divUpArrow.style.display = 'none';
+        }
+        lastWindowHeight = currentWindowHeight;
+      }
+    });
+    window.addEventListener('beforeunload', () => {
+      if (iframe && containerHtmlElement.contains(iframe)) {
+        containerHtmlElement.removeChild(iframe);
+      }
+    });
+  }
+
+  public static _openFullscreenGiOS_(containerId: string, url: string) {
+    let svgArrowUpAnim =
+      '<svg width="50" height="120" viewBox="0 0 50 120" fill="none" xmlns="http://www.w3.org/2000/svg"> \
+		<g> \
+		<animateTransform  \
+			attributeName="transform" \
+			type="translate" \
 			from="0 30" \
 			to="0 -20" \
 			dur="1.5s" \
@@ -551,7 +698,7 @@ class XDom {
     divDownArrow.style.top = '80%';
     divDownArrow.style.left = '45%';
     divDownArrow.style.zIndex = '100';
-    divDownArrow.style.display = 'block';
+    divDownArrow.style.display = 'none';
     divDownArrow.innerHTML = svgArrowDownAnim;
 
     const divUpArrow = document.createElement('div');
@@ -570,28 +717,36 @@ class XDom {
     containerHtmlElement.appendChild(divDownArrow);
     containerHtmlElement.appendChild(divUpArrow);
 
+    setTimeout(() => {
+      divDownArrow.style.display = 'block';
+    }, 2000);
+
     const bigGap = window.outerHeight - window.innerHeight;
     let lastWindowHeight = window.innerHeight;
     window.addEventListener('resize', () => {
       const currentGap = window.outerHeight - window.innerHeight;
       const iframe = document.getElementById(iframeId) as HTMLElement;
       const currentWindowHeight = window.innerHeight;
-      if (currentWindowHeight > lastWindowHeight) {
+      if (currentWindowHeight > lastWindowHeight && currentGap >= bigGap) {
         //console.log("iOS Browser bottom bar might be hidden now");
         iframe.style.height = '100vh';
-        divDownArrow.style.display = 'none';
+        divDownArrow.style.display = 'none'; // https://www.w3schools.com/cssref/pr_class_display.asp
         divUpArrow.style.display = 'block';
-      } else if (currentWindowHeight < lastWindowHeight) {
+      } else if (currentWindowHeight > lastWindowHeight && currentGap < bigGap) {
+        //console.log("iOS Browser bottom bar might be hidden now");
+        divDownArrow.style.display = 'none';
+        divUpArrow.style.display = 'none';
+      } else if (currentWindowHeight < lastWindowHeight && currentGap >= bigGap) {
         //console.log("iOS Browser bottom bar might be visible now");
         iframe.style.height = '60vh';
         divDownArrow.style.display = 'block';
         divUpArrow.style.display = 'none';
-      }
-      lastWindowHeight = currentWindowHeight;
-      if (currentGap < bigGap) {
+      } else if (currentWindowHeight < lastWindowHeight && currentGap < bigGap) {
+        //console.log("iOS Browser bottom bar might be visible now");
         divDownArrow.style.display = 'none';
         divUpArrow.style.display = 'none';
       }
+      lastWindowHeight = currentWindowHeight;
     });
     window.addEventListener('beforeunload', () => {
       if (iframe && containerHtmlElement.contains(iframe)) {
