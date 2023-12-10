@@ -490,7 +490,7 @@ class XDom {
   }
 
   public static openFullscreenGAndroid(containerId: string, url: string) {
-    openFullscreenGDesktop(containerId, url);
+    XDom.openFullscreenGDesktop(containerId, url);
   }
 
   public static openFullscreenGiOS(containerId: string, url: string) {
