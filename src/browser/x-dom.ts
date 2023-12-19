@@ -1216,6 +1216,13 @@ class XDom {
     }
     updateSnowfall();
   }
+
+  public static stopSnowFall() {
+    const canvas = document.getElementById('xdom$$snowCanvas');
+    if (canvas) {
+      canvas.parentNode.removeChild(canvas);
+    }
+  }
 }
 
 export default XDom;
