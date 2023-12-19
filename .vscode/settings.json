@@ -24,7 +24,7 @@
   "editor.defaultFormatter": "esbenp.prettier-vscode", // "dbaeumer.vscode-eslint",
   "eslint.run": "onSave",
   "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": true
+    "source.fixAll.eslint": "explicit"
   },
   "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact", "html", "vue", "svelte"],
   // When opening a file, `editor.tabSize` and `editor.insertSpaces` will be detected based on the file contents.
@@ -227,5 +227,8 @@
     "editor.defaultFormatter": "esbenp.prettier-vscode", // "dbaeumer.vscode-eslint",
   },
   "typescript.tsdk": "node_modules/typescript/lib",
-  "search.useIgnoreFiles": true
+  "search.useIgnoreFiles": true,
+  "[dart][svelte]": {
+    "editor.wordBasedSuggestions": "off"
+  }
 }

@@ -1073,6 +1073,149 @@ class XDom {
   public static getPageElement() {
     return document.getElementById('page');
   }
+
+  public static startSnowFall() {
+    // 1. Create the 'xdom$$snowCanvas' canvas
+    const canvas = document.createElement('canvas');
+    canvas.id = 'xdom$$snowCanvas';
+
+    // 2. Append canvas to the body (or another container of your choice)
+    document.body.appendChild(canvas);
+
+    // 3. Set styles for the canvas
+    canvas.style.position = 'fixed';
+    canvas.style.top = '0';
+    canvas.style.left = '0';
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    canvas.style.pointerEvents = 'none';
+    canvas.style.zIndex = '999';
+
+    // 4. Add event listener to the DOMContentLoaded event
+    const ctx = canvas.getContext('2d');
+
+    // Adjust canvas size when window is resized
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+
+    window.addEventListener('resize', resizeCanvas, false);
+    resizeCanvas();
+
+    const numberOfSnowflakes = 100;
+    const snowflakes = [];
+    const colors = [
+      'rgba(255, 255, 255, 1.0)', // White with alpha
+      'rgba(140, 192, 220, 1.0)', // Light blue with alpha
+      'rgba(183, 228, 239, 1.0)', // Light blue with alpha
+    ]; // Colors with alpha
+
+    // Create snowflakes
+    for (let i = 0; i < numberOfSnowflakes; i++) {
+      snowflakes.push({
+        x: Math.floor(Math.random() * canvas.width * 2 + 1) - canvas.width,
+        y: Math.random() * canvas.height,
+        radius: Math.random() * 4 + 1,
+        density: Math.random() * 1,
+        color: colors[i % colors.length],
+        shape: i % 8 ? 'circle' : 'star',
+      });
+    }
+
+    // Draw the snowflakes
+    function drawSnowflakes() {
+      ctx.globalAlpha = 1.0; // 100% transparency for all snowflakes
+      /*
+      ctx.filter = 'blur(0.5px)'; // Apply blur effect
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.5)'; // Shadow color
+      ctx.shadowBlur = 5; // Blur level
+      ctx.shadowOffsetX = 2; // Horizontal shadow offset
+      ctx.shadowOffsetY = 2; // Vertical shadow offset
+      */
+      for (let i = 0; i < numberOfSnowflakes; i++) {
+        let snowflake = snowflakes[i];
+        ctx.beginPath();
+        ctx.fillStyle = snowflake.color;
+        if (snowflake.shape === 'circle') {
+          drawCircle(ctx, snowflake.x, snowflake.y, snowflake.radius);
+        } else {
+          drawStar(ctx, snowflake.x, snowflake.y, 5, snowflake.radius * 2, snowflake.radius);
+        }
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1.0; // Reset alpha to fully opaque for other drawings
+      // Reset shadow and filter effects
+      /*
+      ctx.filter = 'none';
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+      */
+      moveSnowflakes();
+    }
+
+    // Animate the snowflakes
+    function moveSnowflakes() {
+      for (let i = 0; i < numberOfSnowflakes; i++) {
+        let snowflake = snowflakes[i];
+        snowflake.y += Math.pow(snowflake.density, 2) + 1;
+        snowflake.x += snowflake.x % 5 === 0 ? 1 : 0.5;
+        if (snowflake.y > canvas.height) {
+          snowflakes[i] = {
+            x: Math.floor(Math.random() * canvas.width * 2 + 1) - canvas.width,
+            y: 0,
+            radius: snowflake.radius,
+            density: snowflake.density,
+            color: colors[i % colors.length],
+            shape: i % 8 ? 'circle' : 'star',
+          };
+        }
+      }
+    }
+
+    function drawCircle(ctx, cx, cy, radius) {
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2, true);
+    }
+
+    function drawStar(ctx, cx, cy, spikes, outerRadius, innerRadius) {
+      var rot = (Math.PI / 2) * 3;
+      var x = cx;
+      var y = cy;
+      var step = Math.PI / spikes;
+
+      ctx.moveTo(cx, cy - outerRadius);
+
+      for (let i = 0; i < spikes; i++) {
+        x = cx + Math.cos(rot) * outerRadius;
+        y = cy + Math.sin(rot) * outerRadius;
+        ctx.lineTo(x, y);
+        rot += step;
+
+        x = cx + Math.cos(rot) * innerRadius;
+        y = cy + Math.sin(rot) * innerRadius;
+        ctx.lineTo(x, y);
+        rot += step;
+      }
+
+      ctx.lineTo(cx, cy - outerRadius);
+    }
+
+    // 1) We can call the function periodically to animate the snowflakes using setInterval()
+    //setInterval(drawSnowflakes, 15); // 60 frames per second
+
+    // 2) Or call the function recursively using requestAnimationFrame()
+    function updateSnowfall() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawSnowflakes();
+      moveSnowflakes();
+      requestAnimationFrame(updateSnowfall);
+    }
+    updateSnowfall();
+  }
 }
 
 export default XDom;
