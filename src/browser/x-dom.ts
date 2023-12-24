@@ -1103,7 +1103,8 @@ class XDom {
     window.addEventListener('resize', resizeCanvas, false);
     resizeCanvas();
 
-    const numberOfSnowflakes = 100;
+    const isMobile = XDom.isIOS() || XDom.isAndroid();
+    const numberOfSnowflakes = isMobile ? 60 : 100;
     const snowflakes = [];
     const colors = [
       'rgba(255, 255, 255, 1.0)', // White with alpha
@@ -1116,8 +1117,8 @@ class XDom {
       snowflakes.push({
         x: Math.floor(Math.random() * canvas.width * 2 + 1) - canvas.width,
         y: Math.random() * canvas.height,
-        radius: Math.random() * 4 + 1,
-        density: Math.random() * 1,
+        radius: Math.random() * 4.0 + 1,
+        density: Math.random() / 2.0,
         color: colors[i % colors.length],
         shape: i % 8 ? 'circle' : 'star',
       });
@@ -1161,8 +1162,12 @@ class XDom {
     function moveSnowflakes() {
       for (let i = 0; i < numberOfSnowflakes; i++) {
         let snowflake = snowflakes[i];
-        snowflake.y += Math.pow(snowflake.density, 2) + 1;
-        snowflake.x += snowflake.x % 5 === 0 ? 1 : 0.5;
+        isMobile
+          ? (snowflake.y += snowflake.density + 0.2)
+          : (snowflake.y += snowflake.density + 0.5); // Math.pow(snowflake.density, 2) + 1;
+        isMobile
+          ? (snowflake.x += snowflake.x % 5 === 0 ? 0.05 : 0.1)
+          : (snowflake.x += snowflake.x % 5 === 0 ? 0.1 : 0.2);
         if (snowflake.y > canvas.height) {
           snowflakes[i] = {
             x: Math.floor(Math.random() * canvas.width * 2 + 1) - canvas.width,
