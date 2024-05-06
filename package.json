@@ -97,7 +97,7 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
-    "jsrsasign": "^10.8.6",
+    "jsrsasign": "^11.1.0",
     "node-fetch": "^3.3.2",
     "uuid": "^9.0.1"
   }

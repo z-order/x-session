@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>DateStarted</key>
+	<date>2023-09-27T08:12:53Z</date>
+	<key>FileID</key>
+	<integer>3690691</integer>
+	<key>NameSpaceID</key>
+	<integer>4079447707</integer>
+	<key>NewPath</key>
+	<string>Users/steve/work/nodejs/x-session/examples/browser-sveltekit/static</string>
+	<key>SourcePath</key>
+	<string>Users/steve/work/nodejs/x-session/examples/browser-svelte/static</string>
+</dict>
+</plist>
