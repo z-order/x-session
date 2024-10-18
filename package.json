@@ -1,6 +1,6 @@
 {
   "name": "x-session",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "XSession(x-session), XCache(xcache), XDom(xdom), and XCustomEventEmitter for browsers and Node.js modules.\nIt was planned to support SvelteKit SSR(Server Side Rendering) and CSR(Client Side Rendering) to communicate with x-session API Server.",
   "author": "Chris Stanley <st.theway@gmail.com>, Steve J <steve.jobs@thegenuine.net>",
   "license": "MIT",
@@ -24,6 +24,14 @@
     "svelte",
     "sveltekit"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/z-order/x-session.git"
+  },
+  "homepage": "https://github.com/z-order/x-session.git#readme",
+  "bugs": {
+    "url": "https://github.com/z-order/x-session/issues"
+  },
   "type": "module",
   "main": "./dist/node/mjs/index.js",
   "module": "./dist/node/mjs/index.js",
