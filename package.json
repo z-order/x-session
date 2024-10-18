@@ -1,6 +1,6 @@
 {
   "name": "x-session",
-  "version": "0.3.2",
+  "version": "0.3.4",
   "description": "XSession(x-session), XCache(xcache), XDom(xdom), and XCustomEventEmitter for browsers and Node.js modules.\nIt was planned to support SvelteKit SSR(Server Side Rendering) and CSR(Client Side Rendering) to communicate with x-session API Server.",
   "author": "Chris Stanley <st.theway@gmail.com>, Steve J <steve.jobs@thegenuine.net>",
   "license": "MIT",

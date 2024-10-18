@@ -242,7 +242,6 @@ class XSessionPushEvent extends XSessionEventEmitter implements XSessionClientSe
   }
 }
 
-type XCustomEventEmitter = XSessionEventEmitter;
-export type { XCustomEventEmitter, XSessionEventEmitter };
+export { XSessionEventEmitter as XCustomEventEmitter, XSessionEventEmitter };
 export type { XSessionPushEventOptions };
 export default XSessionPushEvent;
